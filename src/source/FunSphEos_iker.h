@@ -20,7 +20,7 @@
 
 #include "TypesDef.h"
 #include "DualSphDef.h"
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 /// Implements CUDA device functions for Equation of State for SPH.
 namespace cufsph{

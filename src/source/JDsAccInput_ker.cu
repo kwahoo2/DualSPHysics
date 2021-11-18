@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -117,13 +118,13 @@ __global__ void KerAddAccInputLin(unsigned n,unsigned pini,typecode codesel1,typ
 //==================================================================================================
 void AddAccInput(unsigned n,unsigned pini,typecode codesel1,typecode codesel2
   ,tdouble3 acclin,tdouble3 accang,tdouble3 centre,tdouble3 velang,tdouble3 vellin,bool setgravity
-  ,tfloat3 gravity,const typecode *code,const double2 *posxy,const double *posz,const float4 *velrhop,float3 *ace,cudaStream_t stm)
+  ,tfloat3 gravity,const typecode *code,const double2 *posxy,const double *posz,const float4 *velrhop,float3 *ace,hipStream_t stm)
 {
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
     const bool withaccang=(accang.x!=0 || accang.y!=0 || accang.z!=0);
-    if(withaccang)KerAddAccInputAng <<<sgrid,SPHBSIZE,0,stm>>> (n,pini,codesel1,codesel2,Float3(gravity),setgravity,Double3(acclin),Double3(accang),Double3(centre),Double3(velang),Double3(vellin),code,posxy,posz,velrhop,ace);
-    else          KerAddAccInputLin <<<sgrid,SPHBSIZE,0,stm>>> (n,pini,codesel1,codesel2,Float3(gravity),setgravity,Double3(acclin),code,ace);
+    if(withaccang)hipLaunchKernelGGL(KerAddAccInputAng, sgrid, SPHBSIZE, 0, stm, n,pini,codesel1,codesel2,Float3(gravity),setgravity,Double3(acclin),Double3(accang),Double3(centre),Double3(velang),Double3(vellin),code,posxy,posz,velrhop,ace);
+    else          hipLaunchKernelGGL(KerAddAccInputLin, sgrid, SPHBSIZE, 0, stm, n,pini,codesel1,codesel2,Float3(gravity),setgravity,Double3(acclin),code,ace);
   }
 }
 

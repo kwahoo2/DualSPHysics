@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -249,7 +250,7 @@ void ReduPosLimits(unsigned nblocks,float *aux,tfloat3 &pmin,tfloat3 &pmax){
   while(n>1){
     //:printf("##>ReduMaxF n:%d  n_blocks:%d]\n",n,n_blocks);
     //:printf("##>ReduMaxF>sgrid=(%d,%d,%d)\n",sgrid.x,sgrid.y,sgrid.z);
-    KerReduPosLimits<DIVBSIZE><<<sgrid,DIVBSIZE,smemSize>>>(n,dat,res);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(KerReduPosLimits<DIVBSIZE>), sgrid, DIVBSIZE, smemSize, 0, n,dat,res);
     //fcuda::Check_CudaError("#>ReduMaxF Fallo en KerReduMaxF.");
     n=n_blocks;
     sgrid=GetSimpleGridSize(n,DIVBSIZE);  
@@ -257,8 +258,8 @@ void ReduPosLimits(unsigned nblocks,float *aux,tfloat3 &pmin,tfloat3 &pmax){
     float* x=dat; dat=res; res=x;
   }
   float resf[6];
-  cudaMemcpy(resf,dat,sizeof(float)*6,cudaMemcpyDeviceToHost);
-  //fcuda::Check_CudaError("#>ReduMaxF Fallo en cudaMemcpy.");
+  hipMemcpy(resf,dat,sizeof(float)*6,hipMemcpyDeviceToHost);
+  //fcuda::Check_CudaError("#>ReduMaxF Fallo en hipMemcpy.");
   pmin=TFloat3(resf[0],resf[1],resf[2]);
   pmax=TFloat3(resf[3],resf[4],resf[5]);
 }
@@ -389,7 +390,7 @@ void LimitsCellRedu(unsigned cellcode,unsigned nblocks,unsigned *aux
   while(n>1){
     //:printf("##>ReduMaxF n:%d  n_blocks:%d]\n",n,n_blocks);
     //:printf("##>ReduMaxF>sgrid=(%d,%d,%d)\n",sgrid.x,sgrid.y,sgrid.z);
-    KerLimitsCellReduBase<DIVBSIZE><<<sgrid,DIVBSIZE,smemSize>>>(cellcode,n,dat,res);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(KerLimitsCellReduBase<DIVBSIZE>), sgrid, DIVBSIZE, smemSize, 0, cellcode,n,dat,res);
     //fcuda::Check_CudaError("#>ReduMaxF Fallo en KerReduMaxF.");
     n=n_blocks;
     sgrid=GetSimpleGridSize(n,DIVBSIZE);  
@@ -397,8 +398,8 @@ void LimitsCellRedu(unsigned cellcode,unsigned nblocks,unsigned *aux
     unsigned* x=dat; dat=res; res=x;
   }
   unsigned resf[6];
-  cudaMemcpy(resf,dat,sizeof(unsigned)*2,cudaMemcpyDeviceToHost);
-  //fcuda::Check_CudaError("#>ReduMaxF Fallo en cudaMemcpy.");
+  hipMemcpy(resf,dat,sizeof(unsigned)*2,hipMemcpyDeviceToHost);
+  //fcuda::Check_CudaError("#>ReduMaxF Fallo en hipMemcpy.");
   celmin=TUint3(PC__Cellx(cellcode,resf[0]),PC__Celly(cellcode,resf[0]),PC__Cellz(cellcode,resf[0]));
   celmax=TUint3(PC__Cellx(cellcode,resf[1]),PC__Celly(cellcode,resf[1]),PC__Cellz(cellcode,resf[1]));
 }
@@ -477,15 +478,15 @@ void LimitsCell(unsigned np,unsigned pini,unsigned cellcode,const unsigned *dcel
   const unsigned smemSize=DIVBSIZE*sizeof(unsigned)*6;
   dim3 sgrid=GetSimpleGridSize(np,DIVBSIZE);
   unsigned nblocks=sgrid.x*sgrid.y;
-  KerLimitsCell<DIVBSIZE><<<sgrid,DIVBSIZE,smemSize>>>(np,pini,cellcode,dcell,code,aux);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerLimitsCell<DIVBSIZE>), sgrid, DIVBSIZE, smemSize, 0, np,pini,cellcode,dcell,code,aux);
   LimitsCellRedu(cellcode,nblocks,aux,celmin,celmax);
 #ifdef DG_LimitsCell  //:delbeg:
   char cad[1024];
   sprintf(cad,"LimitsPos_%s> n:%u  pini:%u",(velrhop? "Fluid": "Bound"),np,pini); log->Print(cad);
   float4 *poscellh=new float4[np];
   byte *checkh=new byte[np];
-  cudaMemcpy(poscellh,poscell+pini,sizeof(float4)*np,cudaMemcpyDeviceToHost);
-  cudaMemcpy(checkh,check+pini,sizeof(byte)*np,cudaMemcpyDeviceToHost);
+  hipMemcpy(poscellh,poscell+pini,sizeof(float4)*np,hipMemcpyDeviceToHost);
+  hipMemcpy(checkh,check+pini,sizeof(byte)*np,hipMemcpyDeviceToHost);
   tuint3 pminh=TUint3(UINT_MAX);
   tuint3 pmaxh=TUint3(0);
   for(unsigned p=0;p<np;p++)if(!checkh[p]){
@@ -535,13 +536,13 @@ __global__ void KerCalcBeginEndCell(unsigned n,unsigned pini,const unsigned *cel
 /// Calcula particula inicial y final de cada celda.
 //==============================================================================
 void CalcBeginEndCell(bool full,unsigned np,unsigned npb,unsigned sizebegcell,unsigned cellfluid,const unsigned *cellpart,int2 *begcell){
-  if(full)cudaMemset(begcell,0,sizeof(int2)*sizebegcell);
-  else cudaMemset(begcell+cellfluid,0,sizeof(int2)*(sizebegcell-cellfluid));
+  if(full)hipMemset(begcell,0,sizeof(int2)*sizebegcell);
+  else hipMemset(begcell+cellfluid,0,sizeof(int2)*(sizebegcell-cellfluid));
   const unsigned pini=(full? 0: npb);
   const unsigned n=np-pini;
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,DIVBSIZE);
-    KerCalcBeginEndCell <<<sgrid,DIVBSIZE,sizeof(unsigned)*(DIVBSIZE+1)>>> (n,pini,cellpart,begcell);
+    hipLaunchKernelGGL(KerCalcBeginEndCell, sgrid, DIVBSIZE, sizeof(unsigned)*(DIVBSIZE+1), 0, n,pini,cellpart,begcell);
   }
 }
 
@@ -651,7 +652,7 @@ void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart
 {
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,DIVBSIZE);
-    KerSortDataParticles <<<sgrid,DIVBSIZE>>>(np,pini,sortpart,idp,code,dcell,posxy,posz,velrhop,idp2,code2,dcell2,posxy2,posz2,velrhop2);
+    hipLaunchKernelGGL(KerSortDataParticles, sgrid, DIVBSIZE, 0, 0, np,pini,sortpart,idp,code,dcell,posxy,posz,velrhop,idp2,code2,dcell2,posxy2,posz2,velrhop2);
   }
 }
 //==============================================================================
@@ -661,7 +662,7 @@ void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart
 void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart,const float4 *a,float4 *a2){
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,DIVBSIZE);
-    KerSortDataParticles <<<sgrid,DIVBSIZE>>>(np,pini,sortpart,a,a2);
+    hipLaunchKernelGGL(KerSortDataParticles, sgrid, DIVBSIZE, 0, 0, np,pini,sortpart,a,a2);
   }
 }
 //==============================================================================
@@ -671,7 +672,7 @@ void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart,const 
 void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart,const float *a,const float *b,float *a2,float *b2){
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,DIVBSIZE);
-    KerSortDataParticles <<<sgrid,DIVBSIZE>>>(np,pini,sortpart,a,b,a2,b2);
+    hipLaunchKernelGGL(KerSortDataParticles, sgrid, DIVBSIZE, 0, 0, np,pini,sortpart,a,b,a2,b2);
   }
 }
 //==============================================================================
@@ -681,7 +682,7 @@ void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart,const 
 void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart,const double2 *a,const double *b,const float4 *c,double2 *a2,double *b2,float4 *c2){
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,DIVBSIZE);
-    KerSortDataParticles <<<sgrid,DIVBSIZE>>>(np,pini,sortpart,a,b,c,a2,b2,c2);
+    hipLaunchKernelGGL(KerSortDataParticles, sgrid, DIVBSIZE, 0, 0, np,pini,sortpart,a,b,c,a2,b2,c2);
   }
 }
 //==============================================================================
@@ -691,7 +692,7 @@ void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart,const 
 void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart,const tsymatrix3f *a,tsymatrix3f *a2){
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,DIVBSIZE);
-    KerSortDataParticles <<<sgrid,DIVBSIZE>>>(np,pini,sortpart,a,a2);
+    hipLaunchKernelGGL(KerSortDataParticles, sgrid, DIVBSIZE, 0, 0, np,pini,sortpart,a,a2);
   }
 }
 
@@ -702,7 +703,7 @@ void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart,const 
 void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart,const float3 *a,float3 *a2){
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,DIVBSIZE);
-    KerSortDataParticles <<<sgrid,DIVBSIZE>>>(np,pini,sortpart,a,a2);
+    hipLaunchKernelGGL(KerSortDataParticles, sgrid, DIVBSIZE, 0, 0, np,pini,sortpart,a,a2);
   }
 }
 
@@ -713,7 +714,7 @@ void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart,const 
 void SortDataParticles(unsigned np,unsigned pini,const unsigned *sortpart,const float *a,float *a2){
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,DIVBSIZE);
-    KerSortDataParticles <<<sgrid,DIVBSIZE>>>(np,pini,sortpart,a,a2);
+    hipLaunchKernelGGL(KerSortDataParticles, sgrid, DIVBSIZE, 0, 0, np,pini,sortpart,a,a2);
   }
 }
 
@@ -756,7 +757,7 @@ void ReduUintLimits(unsigned nblocks,unsigned *aux,unsigned &vmin,unsigned &vmax
   while(n>1){
     //:printf("##>ReduMaxF n:%d  n_blocks:%d]\n",n,n_blocks);
     //:printf("##>ReduMaxF>sgrid=(%d,%d,%d)\n",sgrid.x,sgrid.y,sgrid.z);
-    KerReduUintLimits<DIVBSIZE><<<sgrid,DIVBSIZE,smemSize>>>(n,dat,res);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(KerReduUintLimits<DIVBSIZE>), sgrid, DIVBSIZE, smemSize, 0, n,dat,res);
     //fcuda::Check_CudaError("#>ReduMaxF Fallo en KerReduMaxF.");
     n=n_blocks;
     sgrid=GetSimpleGridSize(n,DIVBSIZE);  
@@ -764,8 +765,8 @@ void ReduUintLimits(unsigned nblocks,unsigned *aux,unsigned &vmin,unsigned &vmax
     unsigned* x=dat; dat=res; res=x;
   }
   unsigned resf[2];
-  cudaMemcpy(resf,dat,sizeof(unsigned)*2,cudaMemcpyDeviceToHost);
-  //fcuda::Check_CudaError("#>ReduMaxF Fallo en cudaMemcpy.");
+  hipMemcpy(resf,dat,sizeof(unsigned)*2,hipMemcpyDeviceToHost);
+  //fcuda::Check_CudaError("#>ReduMaxF Fallo en hipMemcpy.");
   vmin=resf[0];
   vmax=resf[1];
 }
@@ -829,7 +830,7 @@ unsigned ReduUintSum(unsigned nblocks,unsigned *aux){
   while(n>1){
     //:printf("##>ReduMaxF n:%d  n_blocks:%d]\n",n,n_blocks);
     //:printf("##>ReduMaxF>sgrid=(%d,%d,%d)\n",sgrid.x,sgrid.y,sgrid.z);
-    KerReduUintSum<DIVBSIZE><<<sgrid,DIVBSIZE,smemSize>>>(n,dat,res);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(KerReduUintSum<DIVBSIZE>), sgrid, DIVBSIZE, smemSize, 0, n,dat,res);
     //fcuda::Check_CudaError("#>ReduMaxF Fallo en KerReduMaxF.");
     n=n_blocks;
     sgrid=GetSimpleGridSize(n,DIVBSIZE);  
@@ -837,8 +838,8 @@ unsigned ReduUintSum(unsigned nblocks,unsigned *aux){
     unsigned* x=dat; dat=res; res=x;
   }
   unsigned resf;
-  cudaMemcpy(&resf,dat,sizeof(unsigned),cudaMemcpyDeviceToHost);
-  //fcuda::Check_CudaError("#>ReduMaxF Fallo en cudaMemcpy.");
+  hipMemcpy(&resf,dat,sizeof(unsigned),hipMemcpyDeviceToHost);
+  //fcuda::Check_CudaError("#>ReduMaxF Fallo en hipMemcpy.");
   return(resf);
 }
 
@@ -879,13 +880,13 @@ unsigned ReduUintSum(unsigned nblocks,unsigned *aux){
 //  const unsigned smemSize=DIVBSIZE*sizeof(unsigned)*2;
 //  dim3 sgrid=GetSimpleGridSize(ncel,DIVBSIZE);
 //  unsigned nblocks=sgrid.x*sgrid.y;
-//  KerGetRangeParticlesCells<DIVBSIZE><<<sgrid,DIVBSIZE,smemSize>>>(ncel,celini,begcell,aux);
+//  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerGetRangeParticlesCells<DIVBSIZE>), sgrid, DIVBSIZE, smemSize, 0, ncel,celini,begcell,aux);
 //  ReduUintLimits(nblocks,aux,pmin,pmax,log);
 //#ifdef DG_GetRangeParticlesCells
 //  char cad[1024];
 //  sprintf(cad,"GetRangeParticlesCells> ncel:%u  celini:%u",ncel,celini); log->Print(cad);
 //  int2 *begcellh=new int2[ncel];
-//  cudaMemcpy(begcellh,begcell+celini,sizeof(int2)*ncel,cudaMemcpyDeviceToHost);
+//  hipMemcpy(begcellh,begcell+celini,sizeof(int2)*ncel,hipMemcpyDeviceToHost);
 //  unsigned pminh=UINT_MAX;
 //  unsigned pmaxh=0;
 //  for(unsigned p=0;p<ncel;p++){
@@ -932,13 +933,13 @@ unsigned ReduUintSum(unsigned nblocks,unsigned *aux){
 //  const unsigned smemSize=DIVBSIZE*sizeof(unsigned);
 //  dim3 sgrid=GetSimpleGridSize(ncel,DIVBSIZE);
 //  unsigned nblocks=sgrid.x*sgrid.y;
-//  KerGetParticlesCells<DIVBSIZE><<<sgrid,DIVBSIZE,smemSize>>>(ncel,celini,begcell,aux);
+//  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerGetParticlesCells<DIVBSIZE>), sgrid, DIVBSIZE, smemSize, 0, ncel,celini,begcell,aux);
 //  unsigned sum=ReduUintSum(nblocks,aux,log);
 //#ifdef DG_GetParticlesCells
 //  char cad[1024];
 //  //sprintf(cad,"GetParticlesCells> ncel:%u  celini:%u",ncel,celini); log->PrintDbg(cad);
 //  int2 *begcellh=new int2[ncel];
-//  cudaMemcpy(begcellh,begcell+celini,sizeof(int2)*ncel,cudaMemcpyDeviceToHost);
+//  hipMemcpy(begcellh,begcell+celini,sizeof(int2)*ncel,hipMemcpyDeviceToHost);
 //  unsigned sumh=0;
 //  for(unsigned p=0;p<ncel;p++){
 //    unsigned x=unsigned(begcellh[p].x),y=unsigned(begcellh[p].y);

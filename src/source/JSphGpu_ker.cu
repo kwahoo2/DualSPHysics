@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -23,7 +24,8 @@
 #include "FunctionsCuda.h"
 #include "JLog2.h"
 #include <cfloat>
-#include <math_constants.h>
+//#include <math_constants.h>
+#include "math_constants.h"
 //:#include "JDgKerPrint.h"
 //:#include "JDgKerPrint_ker.h"
 
@@ -97,7 +99,7 @@ float ReduMaxFloat(unsigned ndata,unsigned inidata,float* data,float* resu){
     float *resu1=resu,*resu2=resu+n_blocks;
     float *res=resu1;
     while(n>1){
-      KerReduMaxFloat<SPHBSIZE><<<sgrid,SPHBSIZE,smemSize>>>(n,ini,dat,res);
+      hipLaunchKernelGGL(HIP_KERNEL_NAME(KerReduMaxFloat<SPHBSIZE>), sgrid, SPHBSIZE, smemSize, 0, n,ini,dat,res);
       n=n_blocks; ini=0;
       sgrid=GetSimpleGridSize(n,SPHBSIZE);  
       n_blocks=sgrid.x*sgrid.y;
@@ -105,8 +107,8 @@ float ReduMaxFloat(unsigned ndata,unsigned inidata,float* data,float* resu){
         dat=res; res=(dat==resu1? resu2: resu1); 
       }
     }
-    if(ndata>1)cudaMemcpy(&resf,res,sizeof(float),cudaMemcpyDeviceToHost);
-    else cudaMemcpy(&resf,data,sizeof(float),cudaMemcpyDeviceToHost);
+    if(ndata>1)hipMemcpy(&resf,res,sizeof(float),hipMemcpyDeviceToHost);
+    else hipMemcpy(&resf,data,sizeof(float),hipMemcpyDeviceToHost);
   }
   //else{//-Using Thrust library is slower than ReduMasFloat() with ndata < 5M.
   //  thrust::device_ptr<float> dev_ptr(data);
@@ -153,8 +155,8 @@ float ReduMaxFloat_w(unsigned ndata,unsigned inidata,float4* data,float* resu){
   float *resu1=resu,*resu2=resu+n_blocks;
   float *res=resu1;
   while(n>1){
-    if(!dat)KerReduMaxFloat_w<SPHBSIZE><<<sgrid,SPHBSIZE,smemSize>>>(n,ini,data,res);
-    else KerReduMaxFloat<SPHBSIZE><<<sgrid,SPHBSIZE,smemSize>>>(n,ini,dat,res);
+    if(!dat)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerReduMaxFloat_w<SPHBSIZE>), sgrid, SPHBSIZE, smemSize, 0, n,ini,data,res);
+    else hipLaunchKernelGGL(HIP_KERNEL_NAME(KerReduMaxFloat<SPHBSIZE>), sgrid, SPHBSIZE, smemSize, 0, n,ini,dat,res);
     n=n_blocks; ini=0;
     sgrid=GetSimpleGridSize(n,SPHBSIZE);  
     n_blocks=sgrid.x*sgrid.y;
@@ -163,10 +165,10 @@ float ReduMaxFloat_w(unsigned ndata,unsigned inidata,float4* data,float* resu){
     }
   }
   float resf;
-  if(ndata>1)cudaMemcpy(&resf,res,sizeof(float),cudaMemcpyDeviceToHost);
+  if(ndata>1)hipMemcpy(&resf,res,sizeof(float),hipMemcpyDeviceToHost);
   else{
     float4 resf4;
-    cudaMemcpy(&resf4,data,sizeof(float4),cudaMemcpyDeviceToHost);
+    hipMemcpy(&resf4,data,sizeof(float4),hipMemcpyDeviceToHost);
     resf=resf4.w;
   }
   return(resf);
@@ -177,7 +179,7 @@ float ReduMaxFloat_w(unsigned ndata,unsigned inidata,float4* data,float* resu){
 /// Graba constantes para la interaccion a la GPU.
 //==============================================================================
 void CteInteractionUp(const StCteInteraction *cte){
-  cudaMemcpyToSymbol(CTE,cte,sizeof(StCteInteraction));
+  hipMemcpyToSymbol(HIP_SYMBOL(CTE),cte,sizeof(StCteInteraction));
 }
 
 //------------------------------------------------------------------------------
@@ -197,7 +199,7 @@ __global__ void KerInitArray(unsigned n,float3 *v,float3 value)
 void InitArray(unsigned n,float3 *v,tfloat3 value){
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerInitArray <<<sgrid,SPHBSIZE>>> (n,v,Float3(value));
+    hipLaunchKernelGGL(KerInitArray, sgrid, SPHBSIZE, 0, 0, n,v,Float3(value));
   }
 }
 
@@ -218,7 +220,7 @@ __global__ void KerResety(unsigned n,unsigned ini,float3 *v)
 void Resety(unsigned n,unsigned ini,float3 *v){
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerResety <<<sgrid,SPHBSIZE>>> (n,ini,v);
+    hipLaunchKernelGGL(KerResety, sgrid, SPHBSIZE, 0, 0, n,ini,v);
   }
 }
 
@@ -240,7 +242,7 @@ __global__ void KerComputeAceMod(unsigned n,const float3 *ace,float *acemod)
 void ComputeAceMod(unsigned n,const float3 *ace,float *acemod){
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerComputeAceMod <<<sgrid,SPHBSIZE>>> (n,ace,acemod);
+    hipLaunchKernelGGL(KerComputeAceMod, sgrid, SPHBSIZE, 0, 0, n,ace,acemod);
   }
 }
 
@@ -265,7 +267,7 @@ __global__ void KerComputeAceMod(unsigned n,const typecode *code,const float3 *a
 void ComputeAceMod(unsigned n,const typecode *code,const float3 *ace,float *acemod){
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerComputeAceMod <<<sgrid,SPHBSIZE>>> (n,code,ace,acemod);
+    hipLaunchKernelGGL(KerComputeAceMod, sgrid, SPHBSIZE, 0, 0, n,code,ace,acemod);
   }
 }
 
@@ -292,7 +294,7 @@ __global__ void KerComputeVelMod(unsigned n,const float4 *vel,float *velmod)
 void ComputeVelMod(unsigned n,const float4 *vel,float *velmod){
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerComputeVelMod <<<sgrid,SPHBSIZE>>> (n,vel,velmod);
+    hipLaunchKernelGGL(KerComputeVelMod, sgrid, SPHBSIZE, 0, 0, n,vel,velmod);
   }
 }
 
@@ -755,9 +757,9 @@ template<TpKernel tker,TpFtMode ftmode,bool lamsps,TpDensity tdensity,bool shift
     typedef void (*fun_ptr)(unsigned,unsigned,float,float,int,int4,int3,const int2*,unsigned,const unsigned*,const float*,const float2*,float2*,const float4*,const float4*,const typecode*,const unsigned*,float*,float*,float3*,float*,TpShifting,float4*);
     fun_ptr ptr=&KerInteractionForcesFluid<tker,ftmode,lamsps,tdensity,shift,symm>;
     int qblocksize=0,mingridsize=0;
-    cudaOccupancyMaxPotentialBlockSize(&mingridsize,&qblocksize,(void*)ptr,0,0);
-    struct cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr,(void*)ptr);
+    hipOccupancyMaxPotentialBlockSize(&mingridsize,&qblocksize,(void*)ptr,0,0);
+    struct hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>((void*))ptr);
     kerinfo->forcesfluid_bs=qblocksize;
     kerinfo->forcesfluid_rg=attr.numRegs;
     kerinfo->forcesfluid_bsmax=attr.maxThreadsPerBlock;
@@ -767,9 +769,9 @@ template<TpKernel tker,TpFtMode ftmode,bool lamsps,TpDensity tdensity,bool shift
     typedef void (*fun_ptr)(unsigned,unsigned,int,int4,int3,const int2*,const unsigned*,const float*,const float4*,const float4*,const typecode*,const unsigned*,float*,float*);
     fun_ptr ptr=&KerInteractionForcesBound<tker,ftmode,symm>;
     int qblocksize=0,mingridsize=0;
-    cudaOccupancyMaxPotentialBlockSize(&mingridsize,&qblocksize,(void*)ptr,0,0);
-    struct cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr,(void*)ptr);
+    hipOccupancyMaxPotentialBlockSize(&mingridsize,&qblocksize,(void*)ptr,0,0);
+    struct hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>((void*))ptr);
     kerinfo->forcesbound_bs=qblocksize;
     kerinfo->forcesbound_rg=attr.numRegs;
     kerinfo->forcesbound_bsmax=attr.maxThreadsPerBlock;
@@ -800,16 +802,14 @@ template<TpKernel tker,TpFtMode ftmode,bool lamsps,TpDensity tdensity,bool shift
   if(t.fluidnum){
     dim3 sgridf=GetSimpleGridSize(t.fluidnum,t.bsfluid);
     if(t.symmetry) //<vs_syymmetry_ini>
-      KerInteractionForcesFluid<tker,ftmode,lamsps,tdensity,shift,true> <<<sgridf,t.bsfluid,0,t.stm>>> 
-      (t.fluidnum,t.fluidini,t.viscob,t.viscof,dvd.scelldiv,dvd.nc,dvd.cellzero,dvd.beginendcell,dvd.cellfluid,t.dcell
+      hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionForcesFluid<tker,ftmode,lamsps,tdensity,shift,true>), sgridf, t.bsfluid, 0, t.stm, t.fluidnum,t.fluidini,t.viscob,t.viscof,dvd.scelldiv,dvd.nc,dvd.cellzero,dvd.beginendcell,dvd.cellfluid,t.dcell
       ,t.ftomassp,(const float2*)t.tau,(float2*)t.gradvel,t.poscell,t.velrhop,t.code,t.idp
       ,t.viscdt,t.ar,t.ace,t.delta,t.shiftmode,t.shiftposfs);
     else //<vs_syymmetry_end>
-      KerInteractionForcesFluid<tker,ftmode,lamsps,tdensity,shift,false> <<<sgridf,t.bsfluid,0,t.stm>>> 
-      (t.fluidnum,t.fluidini,t.viscob,t.viscof,dvd.scelldiv,dvd.nc,dvd.cellzero,dvd.beginendcell,dvd.cellfluid,t.dcell
+      hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionForcesFluid<tker,ftmode,lamsps,tdensity,shift,false>), sgridf, t.bsfluid, 0, t.stm, t.fluidnum,t.fluidini,t.viscob,t.viscof,dvd.scelldiv,dvd.nc,dvd.cellzero,dvd.beginendcell,dvd.cellfluid,t.dcell
       ,t.ftomassp,(const float2*)t.tau,(float2*)t.gradvel,t.poscell,t.velrhop,t.code,t.idp
       ,t.viscdt,t.ar,t.ace,t.delta,t.shiftmode,t.shiftposfs);
-      //KerInteractionForcesFluid<tker,ftmode,lamsps,tdensity,shift,false> <<<sgridf,t.bsfluid,0,t.stm>>> (t.fluidnum,t.fluidini,t.scelldiv,t.nc,t.cellfluid,t.viscob,t.viscof,t.begincell,Int3(t.cellmin),t.dcell,t.ftomassp,(const float2*)t.tau,(float2*)t.gradvel,t.poscell,t.velrhop,t.code,t.idp,t.viscdt,t.ar,t.ace,t.delta,t.shiftmode,t.shiftposfs);
+      //hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionForcesFluid<tker,ftmode,lamsps,tdensity,shift,false>), sgridf, t.bsfluid, 0, t.stm, t.fluidnum,t.fluidini,t.scelldiv,t.nc,t.cellfluid,t.viscob,t.viscof,t.begincell,Int3(t.cellmin),t.dcell,t.ftomassp,(const float2*)t.tau,(float2*)t.gradvel,t.poscell,t.velrhop,t.code,t.idp,t.viscdt,t.ar,t.ace,t.delta,t.shiftmode,t.shiftposfs);
   }
   //-Interaction Boundary-Fluid.
   if(t.boundnum){
@@ -817,12 +817,10 @@ template<TpKernel tker,TpFtMode ftmode,bool lamsps,TpDensity tdensity,bool shift
     dim3 sgridb=GetSimpleGridSize(t.boundnum,t.bsbound);
     //printf("bsbound:%u\n",bsbound);
     if(t.symmetry) //<vs_syymmetry_ini>
-      KerInteractionForcesBound<tker,ftmode,true > <<<sgridb,t.bsbound,0,t.stm>>> 
-      (t.boundnum,t.boundini,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcell+dvd.cellfluid,t.dcell
+      hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionForcesBound<tker,ftmode,true >), sgridb, t.bsbound, 0, t.stm, t.boundnum,t.boundini,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcell+dvd.cellfluid,t.dcell
         ,t.ftomassp,t.poscell,t.velrhop,t.code,t.idp,t.viscdt,t.ar);
     else //<vs_syymmetry_end>
-      KerInteractionForcesBound<tker,ftmode,false> <<<sgridb,t.bsbound,0,t.stm>>> 
-      (t.boundnum,t.boundini,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,t.dcell
+      hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionForcesBound<tker,ftmode,false>), sgridb, t.bsbound, 0, t.stm, t.boundnum,t.boundini,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,t.dcell
         ,t.ftomassp,t.poscell,t.velrhop,t.code,t.idp,t.viscdt,t.ar);
   }
 }
@@ -1271,13 +1269,13 @@ template<TpKernel tker,bool sim2d,TpSlipMode tslip> void Interaction_MdbcCorrect
     const unsigned bsbound=128;
     dim3 sgridb=cusph::GetSimpleGridSize(n,bsbound);
     if(fastsingle){//-mDBC-Fast_v2
-      KerInteractionMdbcCorrection_Fast <tker,sim2d,tslip> <<<sgridb,bsbound>>> (n,nbound
+      hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionMdbcCorrection_Fast<tker,sim2d,tslip>), sgridb, bsbound, 0, 0, n,nbound
         ,determlimit,mdbcthreshold,Double3(mapposmin),dvd.poscellsize,poscell
         ,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid
         ,posxy,posz,code,idp,boundnormal,motionvel,velrhop);
     }
     else{//-mDBC_v0
-      KerInteractionMdbcCorrection_Dbl <tker,sim2d,tslip> <<<sgridb,bsbound>>> (n,nbound
+      hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionMdbcCorrection_Dbl<tker,sim2d,tslip>), sgridb, bsbound, 0, 0, n,nbound
         ,determlimit,mdbcthreshold,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid
         ,posxy,posz,code,idp,boundnormal,motionvel,velrhop);
     }
@@ -1464,9 +1462,9 @@ void Interaction_ForcesDemT_KerInfo(StKerInfo *kerinfo)
     typedef void (*fun_ptr)(unsigned,int,int4,int3,const int2*,unsigned,const unsigned*,const unsigned*,const float4*,const float*,float,const float4*,const float4*,const typecode*,const unsigned*,float*,float3*);
     fun_ptr ptr=&KerInteractionForcesDem;
     int qblocksize=0,mingridsize=0;
-    cudaOccupancyMaxPotentialBlockSize(&mingridsize,&qblocksize,(void*)ptr,0,0);
-    struct cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr,(void*)ptr);
+    hipOccupancyMaxPotentialBlockSize(&mingridsize,&qblocksize,(void*)ptr,0,0);
+    struct hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>((void*))ptr);
     kerinfo->forcesdem_bs=qblocksize;
     kerinfo->forcesdem_rg=attr.numRegs;
     kerinfo->forcesdem_bsmax=attr.maxThreadsPerBlock;
@@ -1498,7 +1496,7 @@ void Interaction_ForcesDem(unsigned bsize,unsigned nfloat
   //-Interaction Fluid-Fluid & Fluid-Bound.
   if(nfloat){
     dim3 sgrid=GetSimpleGridSize(nfloat,bsize);
-    KerInteractionForcesDem <<<sgrid,bsize>>> (nfloat
+    hipLaunchKernelGGL(KerInteractionForcesDem, sgrid, bsize, 0, 0, nfloat
       ,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcell,dvd.cellfluid,dcell
       ,ftridp,demdata,ftomassp,dtforce,poscell,velrhop,code,idp,viscdt,ace);
   }
@@ -1546,12 +1544,12 @@ __global__ void KerComputeSpsTau(unsigned n,unsigned pini,float smag,float blin
 /// Computes sub-particle stress tensor (Tau) for SPS turbulence model.
 //==============================================================================
 void ComputeSpsTau(unsigned np,unsigned npb,float smag,float blin
-  ,const float4 *velrhop,const tsymatrix3f *gradvelg,tsymatrix3f *tau,cudaStream_t stm)
+  ,const float4 *velrhop,const tsymatrix3f *gradvelg,tsymatrix3f *tau,hipStream_t stm)
 {
   const unsigned npf=np-npb;
   if(npf){
     dim3 sgridf=GetSimpleGridSize(npf,SPHBSIZE);
-    KerComputeSpsTau <<<sgridf,SPHBSIZE,0,stm>>> (npf,npb,smag,blin,velrhop,(const float2*)gradvelg,(float2*)tau);
+    hipLaunchKernelGGL(KerComputeSpsTau, sgridf, SPHBSIZE, 0, stm, npf,npb,smag,blin,velrhop,(const float2*)gradvelg,(float2*)tau);
   }
 }
 
@@ -1577,10 +1575,10 @@ __global__ void KerAddDelta(unsigned n,const float *delta,float *ar)
 /// Adds value of delta[] to ar[] provided it is not FLT_MAX.
 /// Anhade valor de delta[] a ar[] siempre que no sea FLT_MAX.
 //==============================================================================
-void AddDelta(unsigned n,const float *delta,float *ar,cudaStream_t stm){
+void AddDelta(unsigned n,const float *delta,float *ar,hipStream_t stm){
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerAddDelta <<<sgrid,SPHBSIZE,0,stm>>> (n,delta,ar);
+    hipLaunchKernelGGL(KerAddDelta, sgrid, SPHBSIZE, 0, stm, n,delta,ar);
   }
 }
 
@@ -1626,12 +1624,12 @@ void ComputeStepPos(byte periactive,bool floatings,unsigned np,unsigned npb
   if(npf){
     dim3 sgrid=GetSimpleGridSize(npf,SPHBSIZE);
     if(periactive){ const bool peri=true;
-      if(floatings)KerComputeStepPos<peri,true>  <<<sgrid,SPHBSIZE>>> (npf,pini,movxy,movz,posxy,posz,dcell,code);
-      else         KerComputeStepPos<peri,false> <<<sgrid,SPHBSIZE>>> (npf,pini,movxy,movz,posxy,posz,dcell,code);
+      if(floatings)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerComputeStepPos<peri,true>), sgrid, SPHBSIZE, 0, 0, npf,pini,movxy,movz,posxy,posz,dcell,code);
+      else         hipLaunchKernelGGL(HIP_KERNEL_NAME(KerComputeStepPos<peri,false>), sgrid, SPHBSIZE, 0, 0, npf,pini,movxy,movz,posxy,posz,dcell,code);
     }
     else{ const bool peri=false;
-      if(floatings)KerComputeStepPos<peri,true>  <<<sgrid,SPHBSIZE>>> (npf,pini,movxy,movz,posxy,posz,dcell,code);
-      else         KerComputeStepPos<peri,false> <<<sgrid,SPHBSIZE>>> (npf,pini,movxy,movz,posxy,posz,dcell,code);
+      if(floatings)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerComputeStepPos<peri,true>), sgrid, SPHBSIZE, 0, 0, npf,pini,movxy,movz,posxy,posz,dcell,code);
+      else         hipLaunchKernelGGL(HIP_KERNEL_NAME(KerComputeStepPos<peri,false>), sgrid, SPHBSIZE, 0, 0, npf,pini,movxy,movz,posxy,posz,dcell,code);
     }
   }
 }
@@ -1677,12 +1675,12 @@ void ComputeStepPos2(byte periactive,bool floatings,unsigned np,unsigned npb
   if(npf){
     dim3 sgrid=GetSimpleGridSize(npf,SPHBSIZE);
     if(periactive){ const bool peri=true;
-      if(floatings)KerComputeStepPos2<peri,true>  <<<sgrid,SPHBSIZE>>> (npf,pini,posxypre,poszpre,movxy,movz,posxy,posz,dcell,code);
-      else         KerComputeStepPos2<peri,false> <<<sgrid,SPHBSIZE>>> (npf,pini,posxypre,poszpre,movxy,movz,posxy,posz,dcell,code);
+      if(floatings)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerComputeStepPos2<peri,true>), sgrid, SPHBSIZE, 0, 0, npf,pini,posxypre,poszpre,movxy,movz,posxy,posz,dcell,code);
+      else         hipLaunchKernelGGL(HIP_KERNEL_NAME(KerComputeStepPos2<peri,false>), sgrid, SPHBSIZE, 0, 0, npf,pini,posxypre,poszpre,movxy,movz,posxy,posz,dcell,code);
     }
     else{ const bool peri=false;
-      if(floatings)KerComputeStepPos2<peri,true>  <<<sgrid,SPHBSIZE>>> (npf,pini,posxypre,poszpre,movxy,movz,posxy,posz,dcell,code);
-      else         KerComputeStepPos2<peri,false> <<<sgrid,SPHBSIZE>>> (npf,pini,posxypre,poszpre,movxy,movz,posxy,posz,dcell,code);
+      if(floatings)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerComputeStepPos2<peri,true>), sgrid, SPHBSIZE, 0, 0, npf,pini,posxypre,poszpre,movxy,movz,posxy,posz,dcell,code);
+      else         hipLaunchKernelGGL(HIP_KERNEL_NAME(KerComputeStepPos2<peri,false>), sgrid, SPHBSIZE, 0, 0, npf,pini,posxypre,poszpre,movxy,movz,posxy,posz,dcell,code);
     }
   }
 }
@@ -1731,12 +1729,12 @@ __global__ void KerCalcRidp(unsigned n,unsigned ini,unsigned idini,unsigned idfi
 void CalcRidp(bool periactive,unsigned np,unsigned pini,unsigned idini,unsigned idfin,const typecode *code,const unsigned *idp,unsigned *ridp){
   //-Assigns values UINT_MAX
   const unsigned nsel=idfin-idini;
-  cudaMemset(ridp,255,sizeof(unsigned)*nsel); 
+  hipMemset(ridp,255,sizeof(unsigned)*nsel); 
   //-Computes position according to id. | Calcula posicion segun id.
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,SPHBSIZE);
-    if(periactive)KerCalcRidp <<<sgrid,SPHBSIZE>>> (np,pini,idini,idfin,code,idp,ridp);
-    else          KerCalcRidp <<<sgrid,SPHBSIZE>>> (np,pini,idini,idfin,idp,ridp);
+    if(periactive)hipLaunchKernelGGL(KerCalcRidp, sgrid, SPHBSIZE, 0, 0, np,pini,idini,idfin,code,idp,ridp);
+    else          hipLaunchKernelGGL(KerCalcRidp, sgrid, SPHBSIZE, 0, 0, np,pini,idini,idfin,idp,ridp);
   }
 }
 
@@ -1767,8 +1765,8 @@ void MoveLinBound(byte periactive,unsigned np,unsigned ini,tdouble3 mvpos,tfloat
   ,const unsigned *ridp,double2 *posxy,double *posz,unsigned *dcell,float4 *velrhop,typecode *code)
 {
   dim3 sgrid=GetSimpleGridSize(np,SPHBSIZE);
-  if(periactive)KerMoveLinBound<true>  <<<sgrid,SPHBSIZE>>> (np,ini,Double3(mvpos),Float3(mvvel),ridp,posxy,posz,dcell,velrhop,code);
-  else          KerMoveLinBound<false> <<<sgrid,SPHBSIZE>>> (np,ini,Double3(mvpos),Float3(mvvel),ridp,posxy,posz,dcell,velrhop,code);
+  if(periactive)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerMoveLinBound<true>), sgrid, SPHBSIZE, 0, 0, np,ini,Double3(mvpos),Float3(mvvel),ridp,posxy,posz,dcell,velrhop,code);
+  else          hipLaunchKernelGGL(HIP_KERNEL_NAME(KerMoveLinBound<false>), sgrid, SPHBSIZE, 0, 0, np,ini,Double3(mvpos),Float3(mvvel),ridp,posxy,posz,dcell,velrhop,code);
 }
 
 
@@ -1821,12 +1819,12 @@ void MoveMatBound(byte periactive,bool simulate2d,unsigned np,unsigned ini,tmatr
 {
   dim3 sgrid=GetSimpleGridSize(np,SPHBSIZE);
   if(periactive){ const bool peri=true;
-    if(simulate2d)KerMoveMatBound<peri,true>  <<<sgrid,SPHBSIZE>>> (np,ini,m,dt,ridpmv,posxy,posz,dcell,velrhop,code,boundnormal);
-    else          KerMoveMatBound<peri,false> <<<sgrid,SPHBSIZE>>> (np,ini,m,dt,ridpmv,posxy,posz,dcell,velrhop,code,boundnormal);
+    if(simulate2d)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerMoveMatBound<peri,true>), sgrid, SPHBSIZE, 0, 0, np,ini,m,dt,ridpmv,posxy,posz,dcell,velrhop,code,boundnormal);
+    else          hipLaunchKernelGGL(HIP_KERNEL_NAME(KerMoveMatBound<peri,false>), sgrid, SPHBSIZE, 0, 0, np,ini,m,dt,ridpmv,posxy,posz,dcell,velrhop,code,boundnormal);
   }
   else{ const bool peri=false;
-    if(simulate2d)KerMoveMatBound<peri,true>  <<<sgrid,SPHBSIZE>>> (np,ini,m,dt,ridpmv,posxy,posz,dcell,velrhop,code,boundnormal);
-    else          KerMoveMatBound<peri,false> <<<sgrid,SPHBSIZE>>> (np,ini,m,dt,ridpmv,posxy,posz,dcell,velrhop,code,boundnormal);
+    if(simulate2d)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerMoveMatBound<peri,true>), sgrid, SPHBSIZE, 0, 0, np,ini,m,dt,ridpmv,posxy,posz,dcell,velrhop,code,boundnormal);
+    else          hipLaunchKernelGGL(HIP_KERNEL_NAME(KerMoveMatBound<peri,false>), sgrid, SPHBSIZE, 0, 0, np,ini,m,dt,ridpmv,posxy,posz,dcell,velrhop,code,boundnormal);
   }
 }
 
@@ -1855,7 +1853,7 @@ template<bool periactive> __global__ void KerCopyMotionVel(unsigned n
 void CopyMotionVel(unsigned nmoving,const unsigned *ridp,const float4 *velrhop,float3 *motionvel)
 {
   dim3 sgrid=GetSimpleGridSize(nmoving,SPHBSIZE);
-  KerCopyMotionVel<true>  <<<sgrid,SPHBSIZE>>> (nmoving,ridp,velrhop,motionvel);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerCopyMotionVel<true>), sgrid, SPHBSIZE, 0, 0, nmoving,ridp,velrhop,motionvel);
 }
 
 
@@ -1902,8 +1900,8 @@ void MovePiston1d(bool periactive,unsigned np,unsigned idini
 {
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,SPHBSIZE);
-    if(periactive)KerMovePiston1d<true>  <<<sgrid,SPHBSIZE>>> (np,idini,dp,poszmin,poszcount,pistonid,movx,velx,ridpmv,posxy,posz,dcell,velrhop,code);
-    else          KerMovePiston1d<false> <<<sgrid,SPHBSIZE>>> (np,idini,dp,poszmin,poszcount,pistonid,movx,velx,ridpmv,posxy,posz,dcell,velrhop,code);
+    if(periactive)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerMovePiston1d<true>), sgrid, SPHBSIZE, 0, 0, np,idini,dp,poszmin,poszcount,pistonid,movx,velx,ridpmv,posxy,posz,dcell,velrhop,code);
+    else          hipLaunchKernelGGL(HIP_KERNEL_NAME(KerMovePiston1d<false>), sgrid, SPHBSIZE, 0, 0, np,idini,dp,poszmin,poszcount,pistonid,movx,velx,ridpmv,posxy,posz,dcell,velrhop,code);
   }
 }
 
@@ -1944,8 +1942,8 @@ void MovePiston2d(bool periactive,unsigned np,unsigned idini
 {
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,SPHBSIZE);
-    if(periactive)KerMovePiston2d<true>  <<<sgrid,SPHBSIZE>>> (np,idini,dp,posymin,poszmin,poszcount,movx,velx,ridpmv,posxy,posz,dcell,velrhop,code);
-    else          KerMovePiston2d<false> <<<sgrid,SPHBSIZE>>> (np,idini,dp,posymin,poszmin,poszcount,movx,velx,ridpmv,posxy,posz,dcell,velrhop,code);
+    if(periactive)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerMovePiston2d<true>), sgrid, SPHBSIZE, 0, 0, np,idini,dp,posymin,poszmin,poszcount,movx,velx,ridpmv,posxy,posz,dcell,velrhop,code);
+    else          hipLaunchKernelGGL(HIP_KERNEL_NAME(KerMovePiston2d<false>), sgrid, SPHBSIZE, 0, 0, np,idini,dp,posymin,poszmin,poszcount,movx,velx,ridpmv,posxy,posz,dcell,velrhop,code);
   }
 }
 
@@ -2071,8 +2069,8 @@ void FtCalcForcesSum(bool periactive,unsigned ftcount
     const unsigned bsize=256;
     const unsigned smem=sizeof(float)*(3+3)*bsize;
     dim3 sgrid=GetSimpleGridSize(ftcount*bsize,bsize);
-    if(periactive)KerFtCalcForcesSum<true>  <<<sgrid,bsize,smem>>> (ftodatp,ftocenter,ftridp,posxy,posz,ace,ftoforcessum);
-    else          KerFtCalcForcesSum<false> <<<sgrid,bsize,smem>>> (ftodatp,ftocenter,ftridp,posxy,posz,ace,ftoforcessum);
+    if(periactive)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerFtCalcForcesSum<true>), sgrid, bsize, smem, 0, ftodatp,ftocenter,ftridp,posxy,posz,ace,ftoforcessum);
+    else          hipLaunchKernelGGL(HIP_KERNEL_NAME(KerFtCalcForcesSum<false>), sgrid, bsize, smem, 0, ftodatp,ftocenter,ftridp,posxy,posz,ace,ftoforcessum);
   }
 }
 
@@ -2166,7 +2164,7 @@ void FtCalcForces(unsigned ftcount,tfloat3 gravity
 {
   if(ftcount){
     dim3 sgrid=GetSimpleGridSize(ftcount,SPHBSIZE);
-    KerFtCalcForces <<<sgrid,SPHBSIZE>>> (ftcount,Float3(gravity),ftomass
+    hipLaunchKernelGGL(KerFtCalcForces, sgrid, SPHBSIZE, 0, 0, ftcount,Float3(gravity),ftomass
       ,ftoangles,ftoinertiaini8,ftoinertiaini1,ftoforcessum,ftoforces,ftoextforces);
   }
 }
@@ -2220,7 +2218,7 @@ void FtCalcForcesRes(unsigned ftcount,bool simulate2d,double dt
 {
   if(ftcount){
     dim3 sgrid=GetSimpleGridSize(ftcount,SPHBSIZE);
-    KerFtCalcForcesRes <<<sgrid,SPHBSIZE>>> (ftcount,simulate2d,dt,ftovelace,ftocenter,ftoforces,ftoforcesres,ftocenterres);
+    hipLaunchKernelGGL(KerFtCalcForcesRes, sgrid, SPHBSIZE, 0, 0, ftcount,simulate2d,dt,ftovelace,ftocenter,ftoforces,ftoforcesres,ftocenterres);
   }
 }
 
@@ -2274,7 +2272,7 @@ void FtApplyConstraints(unsigned ftcount,const byte *ftoconstraints
 {
   if(ftcount){
     dim3 sgrid=GetSimpleGridSize(ftcount,SPHBSIZE);
-    KerFtApplyConstraints <<<sgrid,SPHBSIZE>>> (ftcount,ftoconstraints,ftoforces,ftoforcesres);
+    hipLaunchKernelGGL(KerFtApplyConstraints, sgrid, SPHBSIZE, 0, 0, ftcount,ftoconstraints,ftoforces,ftoforcesres);
   }
 }
 
@@ -2361,8 +2359,8 @@ void FtUpdate(bool periactive,bool predictor,unsigned ftcount,double dt
   if(ftcount){
     const unsigned bsize=128; 
     dim3 sgrid=GetSimpleGridSize(ftcount*bsize,bsize);
-    if(periactive)KerFtUpdate<true>  <<<sgrid,bsize>>> (predictor,dt,ftcount,ftodatp,ftoforcesres,ftocenterres,ftridp,ftocenter,ftoangles,ftovelace,posxy,posz,dcell,velrhop,code);
-    else          KerFtUpdate<false> <<<sgrid,bsize>>> (predictor,dt,ftcount,ftodatp,ftoforcesres,ftocenterres,ftridp,ftocenter,ftoangles,ftovelace,posxy,posz,dcell,velrhop,code);
+    if(periactive)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerFtUpdate<true>), sgrid, bsize, 0, 0, predictor,dt,ftcount,ftodatp,ftoforcesres,ftocenterres,ftridp,ftocenter,ftoangles,ftovelace,posxy,posz,dcell,velrhop,code);
+    else          hipLaunchKernelGGL(HIP_KERNEL_NAME(KerFtUpdate<false>), sgrid, bsize, 0, 0, predictor,dt,ftcount,ftodatp,ftoforcesres,ftocenterres,ftridp,ftocenter,ftoangles,ftovelace,posxy,posz,dcell,velrhop,code);
   }
 }
 
@@ -2401,7 +2399,7 @@ void FtGetPosRef(unsigned np,const unsigned *idpref,const unsigned *ftridp
   if(np){
     const unsigned bsize=128; 
     dim3 sgrid=GetSimpleGridSize(np,bsize);
-    KerFtGetPosRef <<<sgrid,bsize>>> (np,idpref,ftridp,posxy,posz,posref);
+    hipLaunchKernelGGL(KerFtGetPosRef, sgrid, bsize, 0, 0, np,idpref,ftridp,posxy,posz,posref);
   }
 }
 //<vs_ftmottionsv_end>
@@ -2434,7 +2432,7 @@ __global__ void KerPeriodicIgnore(unsigned n,typecode *code)
 void PeriodicIgnore(unsigned n,typecode *code){
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerPeriodicIgnore <<<sgrid,SPHBSIZE>>> (n,code);
+    hipLaunchKernelGGL(KerPeriodicIgnore, sgrid, SPHBSIZE, 0, 0, n,code);
   }
 }
 
@@ -2502,11 +2500,11 @@ unsigned PeriodicMakeList(unsigned n,unsigned pini,bool stable,unsigned nmax
   if(n){
     //-lspg size list initialized to zero.
     //-Inicializa tamanho de lista lspg a cero.
-    cudaMemset(listp+nmax,0,sizeof(unsigned));
+    hipMemset(listp+nmax,0,sizeof(unsigned));
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
     const unsigned smem=(SPHBSIZE*2+1)*sizeof(unsigned); //-Each particle can leave two new periodic over the counter position. | De cada particula pueden salir 2 nuevas periodicas mas la posicion del contador.
-    KerPeriodicMakeList <<<sgrid,SPHBSIZE,smem>>> (n,pini,nmax,Double3(mapposmin),Double3(mapposmax),Double3(perinc),posxy,posz,code,listp);
-    cudaMemcpy(&count,listp+nmax,sizeof(unsigned),cudaMemcpyDeviceToHost);
+    hipLaunchKernelGGL(KerPeriodicMakeList, sgrid, SPHBSIZE, smem, 0, n,pini,nmax,Double3(mapposmin),Double3(mapposmax),Double3(perinc),posxy,posz,code,listp);
+    hipMemcpy(&count,listp+nmax,sizeof(unsigned),hipMemcpyDeviceToHost);
     //-Reorders list if it is valid and stable has been activated.
     //-Reordena lista si es valida y stable esta activado.
     if(stable && count && count<=nmax){
@@ -2603,7 +2601,7 @@ void PeriodicDuplicateVerlet(unsigned n,unsigned pini,tuint3 domcells,tdouble3 p
   if(n){
     uint3 cellmax=make_uint3(domcells.x-1,domcells.y-1,domcells.z-1);
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerPeriodicDuplicateVerlet <<<sgrid,SPHBSIZE>>> (n,pini,cellmax,Double3(perinc),listp,idp,code,dcell,posxy,posz,velrhop,spstau,velrhopm1);
+    hipLaunchKernelGGL(KerPeriodicDuplicateVerlet, sgrid, SPHBSIZE, 0, 0, n,pini,cellmax,Double3(perinc),listp,idp,code,dcell,posxy,posz,velrhop,spstau,velrhopm1);
   }
 }
 
@@ -2653,8 +2651,8 @@ void PeriodicDuplicateSymplectic(unsigned n,unsigned pini
   if(n){
     uint3 cellmax=make_uint3(domcells.x-1,domcells.y-1,domcells.z-1);
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    if(posxypre!=NULL)KerPeriodicDuplicateSymplectic<true>  <<<sgrid,SPHBSIZE>>> (n,pini,cellmax,Double3(perinc),listp,idp,code,dcell,posxy,posz,velrhop,spstau,posxypre,poszpre,velrhoppre);
-    else              KerPeriodicDuplicateSymplectic<false> <<<sgrid,SPHBSIZE>>> (n,pini,cellmax,Double3(perinc),listp,idp,code,dcell,posxy,posz,velrhop,spstau,posxypre,poszpre,velrhoppre);
+    if(posxypre!=NULL)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerPeriodicDuplicateSymplectic<true>), sgrid, SPHBSIZE, 0, 0, n,pini,cellmax,Double3(perinc),listp,idp,code,dcell,posxy,posz,velrhop,spstau,posxypre,poszpre,velrhoppre);
+    else              hipLaunchKernelGGL(HIP_KERNEL_NAME(KerPeriodicDuplicateSymplectic<false>), sgrid, SPHBSIZE, 0, 0, n,pini,cellmax,Double3(perinc),listp,idp,code,dcell,posxy,posz,velrhop,spstau,posxypre,poszpre,velrhoppre);
   }
 }
 
@@ -2687,7 +2685,7 @@ void PeriodicDuplicateNormals(unsigned n,unsigned pini,const unsigned *listp,flo
 {
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerPeriodicDuplicateNormals <<<sgrid,SPHBSIZE>>> (n,pini,listp,normals,motionvel);
+    hipLaunchKernelGGL(KerPeriodicDuplicateNormals, sgrid, SPHBSIZE, 0, 0, n,pini,listp,normals,motionvel);
   }
 }
 
@@ -2767,7 +2765,7 @@ void ComputeDamping(double dt,tdouble4 plane,float dist,float over,tfloat3 facto
 {
   if(n){
     dim3 sgridf=GetSimpleGridSize(n,SPHBSIZE);
-    KerComputeDamping <<<sgridf,SPHBSIZE>>> (n,pini,dt,Double4(plane),dist,over,Float3(factorxyz),redumax
+    hipLaunchKernelGGL(KerComputeDamping, sgridf, SPHBSIZE, 0, 0, n,pini,dt,Double4(plane),dist,over,Float3(factorxyz),redumax
       ,posxy,posz,code,velrhop);
   }
 }
@@ -2822,7 +2820,7 @@ void ComputeDampingPla(double dt,tdouble4 plane,float dist,float over,tfloat3 fa
 {
   if(n){
     dim3 sgridf=GetSimpleGridSize(n,SPHBSIZE);
-    KerComputeDampingPla <<<sgridf,SPHBSIZE>>> (n,pini,dt,Double4(plane),dist,over,Float3(factorxyz),redumax
+    hipLaunchKernelGGL(KerComputeDampingPla, sgridf, SPHBSIZE, 0, 0, n,pini,dt,Double4(plane),dist,over,Float3(factorxyz),redumax
       ,zmin,zmax,Double4(pla0),Double4(pla1),Double4(pla2),Double4(pla3)
       ,posxy,posz,code,velrhop);
   }

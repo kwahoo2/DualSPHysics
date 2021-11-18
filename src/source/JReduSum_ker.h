@@ -29,7 +29,7 @@
 #ifndef _JReduSum_ker_
 #define _JReduSum_ker_
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #ifndef REDUBSIZE
 #define REDUBSIZE 256
@@ -47,32 +47,32 @@ namespace curedus{
 unsigned GetAuxSize_ReduSumDouble(unsigned ndata);
 
 double ReduSumDouble(unsigned ndata,unsigned inidata,const double* data,double* resu);
-void ReduSumDoubleAsyn(unsigned ndata,unsigned inidata,const double* data,double* resu,cudaStream_t stm);
-void ReduSumDoubleAsyn(unsigned ndata,unsigned inidata,const double* data,double* resu,double *pim1_sum,cudaStream_t stm);
+void ReduSumDoubleAsyn(unsigned ndata,unsigned inidata,const double* data,double* resu,hipStream_t stm);
+void ReduSumDoubleAsyn(unsigned ndata,unsigned inidata,const double* data,double* resu,double *pim1_sum,hipStream_t stm);
 double DgReduSumDouble(unsigned ndata,unsigned inidata,const double* data);
 
 //-Kernels for ReduSumFloat.
 unsigned GetAuxSize_ReduSumFloat(unsigned ndata);
 
 float ReduSumFloat(unsigned ndata,unsigned inidata,const float* data,float* resu);
-void ReduSumFloatAsyn(unsigned ndata,unsigned inidata,const float* data,float* resu,cudaStream_t stm);
-void ReduSumFloatAsyn(unsigned ndata,unsigned inidata,const float* data,float* resu,float *pim1_sum,cudaStream_t stm);
+void ReduSumFloatAsyn(unsigned ndata,unsigned inidata,const float* data,float* resu,hipStream_t stm);
+void ReduSumFloatAsyn(unsigned ndata,unsigned inidata,const float* data,float* resu,float *pim1_sum,hipStream_t stm);
 float DgReduSumFloat(unsigned ndata,unsigned inidata,const float* data);
 
 //-Kernels for ReduSumUint.
 unsigned GetAuxSize_ReduSumUint(unsigned ndata);
 
 unsigned ReduSumUint(unsigned ndata,unsigned inidata,const unsigned* data,unsigned* resu);
-void ReduSumUintAsyn(unsigned ndata,unsigned inidata,const unsigned* data,unsigned* resu,cudaStream_t stm);
-void ReduSumUintAsyn(unsigned ndata,unsigned inidata,const unsigned* data,unsigned* resu,unsigned *pim1_sum,cudaStream_t stm);
+void ReduSumUintAsyn(unsigned ndata,unsigned inidata,const unsigned* data,unsigned* resu,hipStream_t stm);
+void ReduSumUintAsyn(unsigned ndata,unsigned inidata,const unsigned* data,unsigned* resu,unsigned *pim1_sum,hipStream_t stm);
 unsigned DgReduSumUint(unsigned ndata,unsigned inidata,const unsigned* data);
 
 //-Kernels for ReduSumFloat3.
 unsigned GetAuxSize_ReduSumFloat3(unsigned ndata);
 
 float3 ReduSumFloat3(unsigned ndata,unsigned inidata,const float3* data,float3* resu);
-void ReduSumFloat3Asyn(unsigned ndata,unsigned inidata,const float3* data,float3* resu,cudaStream_t stm);
-void ReduSumFloat3Asyn(unsigned ndata,unsigned inidata,const float3* data,float3* resu,float3 *pim1_sum,cudaStream_t stm);
+void ReduSumFloat3Asyn(unsigned ndata,unsigned inidata,const float3* data,float3* resu,hipStream_t stm);
+void ReduSumFloat3Asyn(unsigned ndata,unsigned inidata,const float3* data,float3* resu,float3 *pim1_sum,hipStream_t stm);
 float3 DgReduSumFloat3(unsigned ndata,unsigned inidata,const float3* data);
 
 

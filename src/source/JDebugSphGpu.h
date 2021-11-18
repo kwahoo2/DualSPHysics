@@ -37,7 +37,7 @@
 
 #include <string>
 #include <cstring>
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 
 class JDataArrays;
@@ -58,7 +58,7 @@ protected:
     ,const std::string &msg,const std::string &file="");
   static void RunExceptioonCudaStatic(const std::string &srcfile,int srcline
     ,const std::string &method
-    ,cudaError_t cuerr,std::string msg);
+    ,hipError_t cuerr,std::string msg);
   static void CheckCudaErroorStatic(const std::string &srcfile,int srcline
     ,const std::string &method
     ,std::string msg);

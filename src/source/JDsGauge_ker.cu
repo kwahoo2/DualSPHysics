@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -22,14 +23,15 @@
 #include "Functions.h"
 #include "FunctionsCuda.h"
 #include <float.h>
-#include <math_constants.h>
+//#include <math_constants.h>
+#include "math_constants.h"
 //:#include "JDgKerPrint.h"
 //:#include "JDgKerPrint_ker.h"
 #include <cstdio>
 #include <string>
 
 //#include "TypesDef.h"
-//#include <cuda_runtime_api.h>
+//#include <hip/hip_runtime_api.h>
 
 namespace cugauge{
 #include "FunctionsBasic_iker.h"
@@ -117,7 +119,7 @@ void Interaction_GaugeVel(const StCteSph &CSP,const StDivDataGpu &dvd,tdouble3 p
   switch(CSP.tkernel){
     case KERNEL_Cubic:   //Kernel Cubic is not available.
     case KERNEL_Wendland:{ const float aker=CSP.kwend.awen;
-      KerInteractionGaugeVel<KERNEL_Wendland> <<<sgrid,bsize>>> (aker,Double3(ptpos)
+      hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionGaugeVel<KERNEL_Wendland>), sgrid, bsize, 0, 0, aker,Double3(ptpos)
         ,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid
         ,dvd.axis,dvd.domcellcode,dvd.domposmin,dvd.scell,dvd.poscellsize
         ,dvd.kernelsize2,CSP.kernelh,CSP.massfluid,posxy,posz,code,velrhop,ptvel);
@@ -233,7 +235,7 @@ void Interaction_GaugeSwl(const StCteSph &CSP,const StDivDataGpu &dvd
   switch(CSP.tkernel){
     case KERNEL_Cubic:   //Kernel Cubic is not available.
     case KERNEL_Wendland:{ const float aker=CSP.kwend.awen;
-      KerInteractionGaugeSwl<KERNEL_Wendland> <<<sgrid,bsize,smem>>> (aker
+      hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionGaugeSwl<KERNEL_Wendland>), sgrid, bsize, smem, 0, aker
         ,point0.x,point0.y,point0.z,pointdir.x,pointdir.y,pointdir.z
         ,pointnp,masslimit,dvd.kernelsize2,CSP.kernelh,CSP.massfluid
         ,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid
@@ -298,7 +300,7 @@ void Interaction_GaugeMaxz(tdouble3 point0,float maxdist2,const StDivDataGpu &dv
 {
   const unsigned bsize=128;
   dim3 sgrid=GetSimpleGridSize(1,bsize);
-  KerInteractionGaugeMaxz <<<sgrid,bsize>>> (point0.x,point0.y,maxdist2
+  hipLaunchKernelGGL(KerInteractionGaugeMaxz, sgrid, bsize, 0, 0, point0.x,point0.y,maxdist2
     ,cxini,cxfin,yini,yfin,zini,zfin,dvd.nc,dvd.cellfluid,dvd.beginendcell
     ,posxy,posz,code,ptres);
 }
@@ -384,7 +386,7 @@ void Interaction_GaugeForce(const StCteSph &CSP,const StDivDataGpu &dvd
     switch(CSP.tkernel){
       case KERNEL_Cubic:   //Kernel Cubic is not available.
       case KERNEL_Wendland:{ const float bker=CSP.kwend.bwen;
-        KerInteractionGaugeForce<KERNEL_Wendland> <<<sgrid,bsize>>>(bker,n,idbegin,codesel
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionGaugeForce<KERNEL_Wendland>), sgrid, bsize, 0, 0, bker,n,idbegin,codesel
           ,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid
           ,dvd.axis,dvd.domcellcode,dvd.domposmin,dvd.scell,dvd.poscellsize
           ,dvd.kernelsize2,CSP.kernelh,CSP.massfluid,CSP.cteb,CSP.rhopzero,CSP.gamma,float(CSP.cs0)

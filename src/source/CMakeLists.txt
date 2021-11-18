@@ -40,25 +40,6 @@ set(OBINOUT JSphCpu_InOut.cpp JSphCpuSingle_InOut.cpp JSphBoundCorr.cpp JSphInOu
 set(OBINOUTGPU JSphGpuSingle_InOut.cpp)
 set(OBMDBC JPartNormalData.cpp JNormalsMarrone.cpp)
 
-#------------------------------------------------------------------
-# NVCC Flags
-#------------------------------------------------------------------
-find_package(CUDA QUIET)
-
-if(CUDA_FOUND)
-  if(CUDA_VERSION VERSION_LESS "7.5")
-    message("Using cuda version <7.5")
-    list(APPEND CUDA_NVCC_FLAGS "-use_fast_math -O3 -gencode=arch=compute_20,code=\"sm_20,compute_20\"")
-  elseif(CUDA_VERSION VERSION_GREATER "7.4" AND CUDA_VERSION VERSION_LESS "9.1")
-    message("Using cuda version >=7.5 and <9.1")
-    list(APPEND CUDA_NVCC_FLAGS "-use_fast_math -O3  -gencode=arch=compute_20,code=\"sm_20,compute_20\" -gencode=arch=compute_30,code=\"sm_30,compute_30\" -gencode=arch=compute_35,code=\"sm_35,compute_35\" -gencode=arch=compute_37,code=\"sm_37,compute_37\" -gencode=arch=compute_50,code=\"sm_50,compute_50\" -gencode=arch=compute_52,code=\"sm_52,compute_52\"")
-  else()
-    message("Using cuda version >=9.1")
-    list(APPEND CUDA_NVCC_FLAGS "-use_fast_math -O3  -gencode=arch=compute_30,code=\"sm_30,compute_30\" -gencode=arch=compute_35,code=\"sm_35,compute_35\" -gencode=arch=compute_37,code=\"sm_37,compute_37\" -gencode=arch=compute_50,code=\"sm_50,compute_50\" -gencode=arch=compute_52,code=\"sm_52,compute_52\" -gencode=arch=compute_61,code=\"sm_61,compute_61\" -gencode=arch=compute_70,code=\"sm_70,compute_70\"")
-  endif()
-else()
-  message("CUDA Libraries were not found.")
-endif()
 
 #------------------------------------------------------------------
 # Static libraries linker path
@@ -101,17 +82,13 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})    
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   add_executable(DualSPHysics5.0CPU_linux64 ${OBJXML} ${OBJSPHMOTION} ${OBCOMMON} ${OBCOMMONDSPH} ${OBSPH} ${OBSPHSINGLE} ${OBWAVERZ} ${OBCHRONO} ${OBMOORDYN} ${OBINOUT} ${OBMDBC})
   install(TARGETS	DualSPHysics5.0CPU_linux64 DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-  if (CUDA_FOUND)
-    cuda_add_executable(DualSPHysics5.0_linux64 ${OBJXML} ${OBJSPHMOTION} ${OBCOMMON} ${OBCOMMONDSPH} ${OBSPH} ${OBSPHSINGLE} ${OBCOMMONGPU} ${OBSPHGPU} ${OBSPHSINGLEGPU} ${OBCUDA} ${OBWAVERZ} ${OBWAVERZCUDA} ${OBCHRONO} ${OBMOORDYN} ${OBINOUT} ${OBINOUTGPU} ${OBMDBC})
-    install(TARGETS DualSPHysics5.0_linux64 DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-  endif(CUDA_FOUND)
+  HIP_ADD_EXECUTABLE(DualSPHysics5.0_linux64 ${OBJXML} ${OBJSPHMOTION} ${OBCOMMON} ${OBCOMMONDSPH} ${OBSPH} ${OBSPHSINGLE} ${OBCOMMONGPU} ${OBSPHGPU} ${OBSPHSINGLEGPU} ${OBCUDA} ${OBWAVERZ} ${OBWAVERZCUDA} ${OBCHRONO} ${OBMOORDYN} ${OBINOUT} ${OBINOUTGPU} ${OBMDBC})
+install(TARGETS DualSPHysics5.0_linux64 DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 elseif(MSVC) 
   add_executable(DualSPHysics5.0CPU_win64 ${OBJXML} ${OBJSPHMOTION} ${OBCOMMON} ${OBCOMMONDSPH} ${OBSPH} ${OBSPHSINGLE} ${OBWAVERZ} ${OBCHRONO} ${OBMOORDYN} ${OBINOUT} ${OBMDBC})
   install(TARGETS	DualSPHysics5.0CPU_win64 DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-  if (CUDA_FOUND)
-    cuda_add_executable(DualSPHysics5.0_win64 ${OBJXML} ${OBJSPHMOTION} ${OBCOMMON} ${OBCOMMONDSPH} ${OBSPH} ${OBSPHSINGLE} ${OBCOMMONGPU} ${OBSPHGPU} ${OBSPHSINGLEGPU} ${OBCUDA} ${OBWAVERZ} ${OBWAVERZCUDA} ${OBCHRONO} ${OBMOORDYN} ${OBINOUT} ${OBINOUTGPU} ${OBMDBC})
-    install(TARGETS DualSPHysics5.0_win64 DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-  endif(CUDA_FOUND)
+  HIP_ADD_EXECUTABLE(DualSPHysics5.0_win64 ${OBJXML} ${OBJSPHMOTION} ${OBCOMMON} ${OBCOMMONDSPH} ${OBSPH} ${OBSPHSINGLE} ${OBCOMMONGPU} ${OBSPHGPU} ${OBSPHSINGLEGPU} ${OBCUDA} ${OBWAVERZ} ${OBWAVERZCUDA} ${OBCHRONO} ${OBMOORDYN} ${OBINOUT} ${OBINOUTGPU} ${OBMDBC})
+  install(TARGETS DualSPHysics5.0_win64 DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
 foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
@@ -180,10 +157,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_link_libraries(DualSPHysics5.0CPU_linux64 ${LINKER_FLAGS})
   set_target_properties(DualSPHysics5.0CPU_linux64 PROPERTIES COMPILE_FLAGS "-use_fast_math -O3 -D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -std=c++0x")
   
-  if (CUDA_FOUND)
+  if (HIP_FOUND)
     target_link_libraries(DualSPHysics5.0_linux64 ${LINKER_FLAGS})
     set_target_properties(DualSPHysics5.0_linux64 PROPERTIES COMPILE_FLAGS "-use_fast_math -O3 -D_WITHGPU -D_GLIBCXX_USE_CXX11_ABI=0 -fPIC -std=c++0x")
-  endif(CUDA_FOUND)
+  endif(HIP_FOUND)
   
 elseif(MSVC)
   set_target_properties(DualSPHysics5.0_win64 PROPERTIES COMPILE_FLAGS "/D _WITHGPU")

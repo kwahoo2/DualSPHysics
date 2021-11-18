@@ -39,7 +39,7 @@
 
 #ifdef _WITHGPU
 #include "JCellDivDataGpu.h"
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 #endif
 
 
@@ -56,7 +56,7 @@ protected:
  #ifdef _WITHGPU
   void RunExceptioonCuda(const std::string &srcfile,int srcline
     ,const std::string &classname,const std::string &method
-    ,cudaError_t cuerr,std::string msg)const;
+    ,hipError_t cuerr,std::string msg)const;
   void CheckCudaErroor(const std::string &srcfile,int srcline
     ,const std::string &classname,const std::string &method
     ,std::string msg)const;

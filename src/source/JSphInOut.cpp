@@ -317,10 +317,10 @@ void JSphInOut::AllocatePtMemoryGpu(unsigned ptcount){
 /// Frees allocated memory for reference points and auxiliary memory on GPU.
 //==============================================================================
 void JSphInOut::FreePtMemoryGpu(){
-  if(PtZoneg)   cudaFree(PtZoneg);    PtZoneg=NULL;
-  if(PtPosxyg)  cudaFree(PtPosxyg);   PtPosxyg=NULL;
-  if(PtPoszg)   cudaFree(PtPoszg);    PtPoszg=NULL;
-  if(PtAuxDistg)cudaFree(PtAuxDistg); PtAuxDistg=NULL;
+  if(PtZoneg)   hipFree(PtZoneg);    PtZoneg=NULL;
+  if(PtPosxyg)  hipFree(PtPosxyg);   PtPosxyg=NULL;
+  if(PtPoszg)   hipFree(PtPoszg);    PtPoszg=NULL;
+  if(PtAuxDistg)hipFree(PtAuxDistg); PtAuxDistg=NULL;
 }
 
 //==============================================================================
@@ -346,14 +346,14 @@ void JSphInOut::AllocateMemoryGpu(unsigned listsize){
 /// Frees allocated memory on GPU.
 //==============================================================================
 void JSphInOut::FreeMemoryGpu(){
-  if(Planesg)   cudaFree(Planesg);     Planesg=NULL;
-  if(BoxLimitg) cudaFree(BoxLimitg);   BoxLimitg=NULL;
-  if(CfgZoneg)  cudaFree(CfgZoneg);    CfgZoneg=NULL;
-  if(CfgUpdateg)cudaFree(CfgUpdateg);  CfgUpdateg=NULL;
-  if(Widthg)    cudaFree(Widthg);      Widthg=NULL;
-  if(DirDatag)  cudaFree(DirDatag);    DirDatag=NULL;
-  if(DirVelg)   cudaFree(DirVelg);     DirVelg=NULL;
-  if(Zsurfg)    cudaFree(Zsurfg);      Zsurfg=NULL;
+  if(Planesg)   hipFree(Planesg);     Planesg=NULL;
+  if(BoxLimitg) hipFree(BoxLimitg);   BoxLimitg=NULL;
+  if(CfgZoneg)  hipFree(CfgZoneg);    CfgZoneg=NULL;
+  if(CfgUpdateg)hipFree(CfgUpdateg);  CfgUpdateg=NULL;
+  if(Widthg)    hipFree(Widthg);      Widthg=NULL;
+  if(DirDatag)  hipFree(DirDatag);    DirDatag=NULL;
+  if(DirVelg)   hipFree(DirVelg);     DirVelg=NULL;
+  if(Zsurfg)    hipFree(Zsurfg);      Zsurfg=NULL;
 }
 #endif
 
@@ -563,13 +563,13 @@ unsigned JSphInOut::Config(double timestep,bool stable,byte periactive
     if(INOUT_ConvertInput_MASK  !=JSphInOutZone::ConvertInput_MASK  )Run_Exceptioon("ConvertInput mask does not match.");
     if(!Cpu){
       //-Copies data to GPU memory.
-      cudaMemcpy(Planesg   ,Planes   ,sizeof(float4)*ListSize,cudaMemcpyHostToDevice);
-      cudaMemcpy(CfgZoneg  ,CfgZone  ,sizeof(byte)  *ListSize,cudaMemcpyHostToDevice);
-      cudaMemcpy(CfgUpdateg,CfgUpdate,sizeof(byte)  *ListSize,cudaMemcpyHostToDevice);
-      cudaMemcpy(Widthg    ,Width    ,sizeof(float) *ListSize,cudaMemcpyHostToDevice);
-      cudaMemcpy(DirDatag  ,DirData  ,sizeof(float3)*ListSize,cudaMemcpyHostToDevice);
-      cudaMemcpy(DirVelg   ,DirVel   ,sizeof(float3)*ListSize,cudaMemcpyHostToDevice);
-      //cudaMemcpy(Zsurfg  ,Zsurf  ,sizeof(float) *ListSize,cudaMemcpyHostToDevice); //It is done in UpdateZsurf().
+      hipMemcpy(Planesg   ,Planes   ,sizeof(float4)*ListSize,hipMemcpyHostToDevice);
+      hipMemcpy(CfgZoneg  ,CfgZone  ,sizeof(byte)  *ListSize,hipMemcpyHostToDevice);
+      hipMemcpy(CfgUpdateg,CfgUpdate,sizeof(byte)  *ListSize,hipMemcpyHostToDevice);
+      hipMemcpy(Widthg    ,Width    ,sizeof(float) *ListSize,hipMemcpyHostToDevice);
+      hipMemcpy(DirDatag  ,DirData  ,sizeof(float3)*ListSize,hipMemcpyHostToDevice);
+      hipMemcpy(DirVelg   ,DirVel   ,sizeof(float3)*ListSize,hipMemcpyHostToDevice);
+      //hipMemcpy(Zsurfg  ,Zsurf  ,sizeof(float) *ListSize,hipMemcpyHostToDevice); //It is done in UpdateZsurf().
       //-Copies data for BoxLimitg to GPU memory.
       if(UseBoxLimit){
         tfloat2* boxlimit=new tfloat2[ListSize*3];
@@ -580,7 +580,7 @@ unsigned JSphInOut::Config(double timestep,bool stable,byte periactive
           boxlimit[ListSize+ci]=TFloat2(boxmin.y,boxmax.y);
           boxlimit[ListSize*2+ci]=TFloat2(boxmin.z,boxmax.z);
         }
-        cudaMemcpy(BoxLimitg,boxlimit,sizeof(float2)*ListSize*3,cudaMemcpyHostToDevice);
+        hipMemcpy(BoxLimitg,boxlimit,sizeof(float2)*ListSize*3,hipMemcpyHostToDevice);
         delete[] boxlimit; boxlimit=NULL;
       }
     }
@@ -643,9 +643,9 @@ unsigned JSphInOut::Config(double timestep,bool stable,byte periactive
           pz[c]=PtPos[c].z;
         }
         //-Copies data to GPU memory.
-        cudaMemcpy(PtZoneg ,PtZone,sizeof(byte)   *PtCount,cudaMemcpyHostToDevice);
-        cudaMemcpy(PtPosxyg,pxy   ,sizeof(double2)*PtCount,cudaMemcpyHostToDevice);
-        cudaMemcpy(PtPoszg ,pz    ,sizeof(double) *PtCount,cudaMemcpyHostToDevice);
+        hipMemcpy(PtZoneg ,PtZone,sizeof(byte)   *PtCount,hipMemcpyHostToDevice);
+        hipMemcpy(PtPosxyg,pxy   ,sizeof(double2)*PtCount,hipMemcpyHostToDevice);
+        hipMemcpy(PtPoszg ,pz    ,sizeof(double) *PtCount,hipMemcpyHostToDevice);
         //-Frees auxiliary memory.
         delete[] pxy; pxy=NULL;
         delete[] pz;  pz=NULL;
@@ -890,7 +890,7 @@ void JSphInOut::UpdateZsurfData(double timestep,bool full){
     }
   }
   #ifdef _WITHGPU
-    if(modified && !Cpu)cudaMemcpy(Zsurfg,Zsurf,sizeof(float)*ListSize,cudaMemcpyHostToDevice);
+    if(modified && !Cpu)hipMemcpy(Zsurfg,Zsurf,sizeof(float)*ListSize,hipMemcpyHostToDevice);
   #endif
 }
 

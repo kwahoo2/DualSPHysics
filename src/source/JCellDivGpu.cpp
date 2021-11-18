@@ -85,7 +85,7 @@ void JCellDivGpu::Reset(){
 /// Libera memoria reservada para celdas.
 //==============================================================================
 void JCellDivGpu::FreeMemoryNct(){
-  cudaFree(BeginEndCell); BeginEndCell=NULL;
+  hipFree(BeginEndCell); BeginEndCell=NULL;
   MemAllocGpuNct=0;
   BoundDivideOk=false;
 }
@@ -96,9 +96,9 @@ void JCellDivGpu::FreeMemoryNct(){
 //==============================================================================
 void JCellDivGpu::FreeMemoryAll(){
   FreeMemoryNct();
-  cudaFree(CellPart);  CellPart=NULL;
-  cudaFree(SortPart);  SortPart=NULL;
-  cudaFree(AuxMem);    AuxMem=NULL; 
+  hipFree(CellPart);  CellPart=NULL;
+  hipFree(SortPart);  SortPart=NULL;
+  hipFree(AuxMem);    AuxMem=NULL; 
   MemAllocGpuNp=0;
   BoundDivideOk=false;
 }
@@ -118,15 +118,15 @@ void JCellDivGpu::AllocMemoryNp(ullong np){
   //-Reserva memoria para particulas.
   MemAllocGpuNp=0;
   size_t m=sizeof(unsigned)*SizeNp;
-  cudaMalloc((void**)&CellPart,m); MemAllocGpuNp+=m;
-  cudaMalloc((void**)&SortPart,m); MemAllocGpuNp+=m;
+  hipMalloc((void**)&CellPart,m); MemAllocGpuNp+=m;
+  hipMalloc((void**)&SortPart,m); MemAllocGpuNp+=m;
   SizeAuxMem=cudiv::LimitsPosSize(SizeNp);
   m=sizeof(float)*SizeAuxMem;
-  cudaMalloc((void**)&AuxMem,m);   MemAllocGpuNp+=m;
+  hipMalloc((void**)&AuxMem,m);   MemAllocGpuNp+=m;
   //-Checks allocated memory.
   //-Comprueba reserva de memoria.
-  cudaError_t cuerr=cudaGetLastError();
-  if(cuerr!=cudaSuccess){
+  hipError_t cuerr=hipGetLastError();
+  if(cuerr!=hipSuccess){
     Run_ExceptioonCuda(cuerr,fun::PrintStr("Failed CPU memory allocation of %.1f MB for %u particles.",double(MemAllocGpuNp)/(1024*1024),SizeNp));
   }
   //-Displays the requested memory.
@@ -148,11 +148,11 @@ void JCellDivGpu::AllocMemoryNct(ullong nct){
   //-Reserva memoria para celdas.
   MemAllocGpuNct=0;
   size_t m=sizeof(int2)*SizeBeginEndCell(SizeNct);
-  cudaMalloc((void**)&BeginEndCell,m); MemAllocGpuNct+=m;
+  hipMalloc((void**)&BeginEndCell,m); MemAllocGpuNct+=m;
   //-Checks allocated memory.
   //-Comprueba reserva de memoria.
-  cudaError_t cuerr=cudaGetLastError();
-  if(cuerr!=cudaSuccess){
+  hipError_t cuerr=hipGetLastError();
+  if(cuerr!=hipSuccess){
     Run_ExceptioonCuda(cuerr,fun::PrintStr("Failed GPU memory allocation of %.1f MB for %u cells.",double(MemAllocGpuNct)/(1024*1024),SizeNct));
   }
   //-Displays requested memory.
@@ -274,7 +274,7 @@ void JCellDivGpu::CalcCellDomainFluid(unsigned n,unsigned pini,unsigned n2,unsig
 /// Devuelve principo y final de la celda indicada.
 //==============================================================================
 void JCellDivGpu::CellBeginEnd(unsigned cell,unsigned ndata,unsigned* data)const{
-  cudaMemcpy(data,BeginEndCell+cell,sizeof(int)*ndata,cudaMemcpyDeviceToHost);
+  hipMemcpy(data,BeginEndCell+cell,sizeof(int)*ndata,hipMemcpyDeviceToHost);
 }
 
 //==============================================================================
@@ -283,7 +283,7 @@ void JCellDivGpu::CellBeginEnd(unsigned cell,unsigned ndata,unsigned* data)const
 //==============================================================================
 int2 JCellDivGpu::CellBeginEnd(unsigned cell)const{
   int2 v;
-  cudaMemcpy(&v,BeginEndCell+cell,sizeof(int2),cudaMemcpyDeviceToHost);
+  hipMemcpy(&v,BeginEndCell+cell,sizeof(int2),hipMemcpyDeviceToHost);
   return(v);
 }
 
@@ -413,10 +413,10 @@ tdouble3 JCellDivGpu::GetDomainLimits(bool limitmin,unsigned slicecellmin)const{
 //    if(size<=SizeAuxMem)auxg=(unsigned*)AuxMem;
 //    else{
 //      memorynew=true;
-//      cudaMalloc((void**)&auxg,sizeof(unsigned)*size);
+//      hipMalloc((void**)&auxg,sizeof(unsigned)*size);
 //    } 
 //    cudiv::GetRangeParticlesCells(celini,celfin,BeginEndCell,auxg,pmin,pmax,Log);
-//    if(memorynew)cudaFree(auxg);
+//    if(memorynew)hipFree(auxg);
 //  }
 //  uint2 rg; rg.x=pmin; rg.y=pmax;
 //  return(rg);
@@ -434,10 +434,10 @@ tdouble3 JCellDivGpu::GetDomainLimits(bool limitmin,unsigned slicecellmin)const{
 //    if(size<=SizeAuxMem)auxg=(unsigned*)AuxMem;
 //    else{
 //      memorynew=true;
-//      cudaMalloc((void**)&auxg,sizeof(unsigned)*size);
+//      hipMalloc((void**)&auxg,sizeof(unsigned)*size);
 //    } 
 //    count=cudiv::GetParticlesCells(celini,celfin,BeginEndCell,auxg,Log);
-//    if(memorynew)cudaFree(auxg);
+//    if(memorynew)hipFree(auxg);
 //  }
 //  return(count);
 //}
@@ -453,8 +453,8 @@ void JCellDivGpu::DgSaveVktRange(std::string file,unsigned pini,unsigned pfin,co
   unsigned np=pfin-pini;
   tfloat3 *pos=new tfloat3[np];
   unsigned *idp=new unsigned[np];
-  cudaMemcpy(idp,idpg+pini,sizeof(unsigned)*np,cudaMemcpyDeviceToHost);
-  cudaMemcpy(pos,posg+pini,sizeof(float3)*np,cudaMemcpyDeviceToHost);
+  hipMemcpy(idp,idpg+pini,sizeof(unsigned)*np,hipMemcpyDeviceToHost);
+  hipMemcpy(pos,posg+pini,sizeof(float3)*np,hipMemcpyDeviceToHost);
   JFormatFiles2::ParticlesToVtk(file,pfin-pini,pos,NULL,NULL,NULL,NULL,idp,NULL,NULL,NULL,NULL);
   delete[] pos;
   delete[] idp;

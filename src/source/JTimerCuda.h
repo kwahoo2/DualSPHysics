@@ -29,7 +29,7 @@
 #ifndef _JTimerCuda_
 #define _JTimerCuda_
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 //##############################################################################
 //# JTimerCuda
@@ -40,29 +40,29 @@ class JTimerCuda
 {
 private:
   bool Stopped;
-  cudaEvent_t EventIni,EventEnd;
+  hipEvent_t EventIni,EventEnd;
 
 public:
   JTimerCuda(){ EventIni=NULL; EventEnd=NULL; Stopped=false; }
   ~JTimerCuda(){ Reset(); }
   void Reset(){
-    if(EventIni)cudaEventDestroy(EventIni); EventIni=NULL;
-    if(EventEnd)cudaEventDestroy(EventEnd); EventEnd=NULL;
+    if(EventIni)hipEventDestroy(EventIni); EventIni=NULL;
+    if(EventEnd)hipEventDestroy(EventEnd); EventEnd=NULL;
     Stopped=false;
   }
   void Start(){
-    if(!EventIni)cudaEventCreate(&EventIni);
-    cudaEventRecord(EventIni,0);
+    if(!EventIni)hipEventCreate(&EventIni);
+    hipEventRecord(EventIni,0);
   }
   void Stop(){
-    if(!EventEnd)cudaEventCreate(&EventEnd);
-    cudaEventRecord(EventEnd,0); 
-    cudaEventSynchronize(EventEnd);
+    if(!EventEnd)hipEventCreate(&EventEnd);
+    hipEventRecord(EventEnd,0); 
+    hipEventSynchronize(EventEnd);
     Stopped=true;
   }
   //-Returns time in miliseconds.
   float GetElapsedTimeF(){ 
-    float elapsed=0; if(Stopped&&EventIni&&EventEnd)cudaEventElapsedTime(&elapsed,EventIni,EventEnd);
+    float elapsed=0; if(Stopped&&EventIni&&EventEnd)hipEventElapsedTime(&elapsed,EventIni,EventEnd);
     return(elapsed); 
   }
   double GetElapsedTimeD(){ return(GetElapsedTimeF()); }

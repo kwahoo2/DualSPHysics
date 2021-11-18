@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -90,7 +91,7 @@ double CalcPosition(double time,unsigned n,const double *dnm,const double2 *coef
     const unsigned smemSize=sizeof(double)*WAVEBSIZE;
     const dim3 sgrid=GetSimpleGridSize(n,WAVEBSIZE);
     const unsigned n_blocks=sgrid.x*sgrid.y;
-    KerCalcPosition<WAVEBSIZE> <<<sgrid,WAVEBSIZE,smemSize>>> (n,time,dnm,coefx,aux);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(KerCalcPosition<WAVEBSIZE>), sgrid, WAVEBSIZE, smemSize, 0, n,time,dnm,coefx,aux);
     res=curedus::ReduSumDouble(n_blocks,0,aux,aux+n_blocks);
   }
   return(res);
@@ -132,7 +133,7 @@ double CalcElevation(double time,double x,unsigned n,const double4 *coefe,double
     const unsigned smemSize=sizeof(double)*WAVEBSIZE;
     const dim3 sgrid=GetSimpleGridSize(n,WAVEBSIZE);
     const unsigned n_blocks=sgrid.x*sgrid.y;
-    KerCalcElevation<WAVEBSIZE> <<<sgrid,WAVEBSIZE,smemSize>>> (n,time,x,coefe,aux);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(KerCalcElevation<WAVEBSIZE>), sgrid, WAVEBSIZE, smemSize, 0, n,time,x,coefe,aux);
     res=curedus::ReduSumDouble(n_blocks,0,aux,aux+n_blocks);
   }
   return(res);
@@ -163,9 +164,9 @@ double CalcElevation(double time,double x,unsigned n,const double4 *coefe,double
 //  double res=0;
 //  if(n){
 //    dim3 sgrid=GetSimpleGridSize(n,WAVEBSIZE);
-//    KerCalcPosition1 <<<sgrid,WAVEBSIZE>>> (n,time,dnm,coefx,aux);
+//    hipLaunchKernelGGL(KerCalcPosition1, sgrid, WAVEBSIZE, 0, 0, n,time,dnm,coefx,aux);
 //    double *auxh=new double[n];
-//    cudaMemcpy(auxh,aux,sizeof(double)*n,cudaMemcpyDeviceToHost);
+//    hipMemcpy(auxh,aux,sizeof(double)*n,hipMemcpyDeviceToHost);
 //    for(unsigned c=0;c<n;c++)res+=auxh[c];
 //    delete[] auxh;
 //  }
@@ -180,7 +181,7 @@ double CalcElevation(double time,double x,unsigned n,const double4 *coefe,double
 //  double res=0;
 //  if(n){
 //    dim3 sgrid=GetSimpleGridSize(n,WAVEBSIZE);
-//    KerCalcPosition1 <<<sgrid,WAVEBSIZE>>> (n,time,dnm,coefx,aux);
+//    hipLaunchKernelGGL(KerCalcPosition1, sgrid, WAVEBSIZE, 0, 0, n,time,dnm,coefx,aux);
 //    res=curedu::ReduSumDouble(n,0,aux,aux+n);
 //  }
 //  return(res);

@@ -61,9 +61,9 @@ JGaugeItem::JGaugeItem(TpGauge type,unsigned idx,std::string name,bool cpu,unsig
 //==============================================================================
 void JGaugeItem::RunExceptioonCuda(const std::string &srcfile,int srcline
   ,const std::string &classname,const std::string &method
-  ,cudaError_t cuerr,std::string msg)const
+  ,hipError_t cuerr,std::string msg)const
 {
-  msg=msg+fun::PrintStr(" (CUDA error %d (%s)).\n",cuerr,cudaGetErrorString(cuerr));
+  msg=msg+fun::PrintStr(" (CUDA error %d (%s)).\n",cuerr,hipGetErrorString(cuerr));
   throw JException(srcfile,srcline,classname,method,msg,"");
 }
 
@@ -75,8 +75,8 @@ void JGaugeItem::CheckCudaErroor(const std::string &srcfile,int srcline
   ,const std::string &classname,const std::string &method
   ,std::string msg)const
 {
-  cudaError_t cuerr=cudaGetLastError();
-  if(cuerr!=cudaSuccess)RunExceptioonCuda(srcfile,srcline,classname,method,cuerr,msg);
+  hipError_t cuerr=hipGetLastError();
+  if(cuerr!=hipSuccess)RunExceptioonCuda(srcfile,srcline,classname,method,cuerr,msg);
 }
 #endif
 
@@ -395,7 +395,7 @@ void JGaugeVelocity::CalculeGpu(double timestep,const StDivDataGpu &dvd
   const bool ptout=PointIsOut(Point.x,Point.y,Point.z);//-Verify that the point is within domain boundaries. | Comprueba que el punto este dentro de limites del dominio.
   if(!ptout){
     cugauge::Interaction_GaugeVel(CSP,dvd,Point,posxy,posz,code,velrhop,aux);
-    cudaMemcpy(&ptvel,aux,sizeof(float3),cudaMemcpyDeviceToHost);
+    hipMemcpy(&ptvel,aux,sizeof(float3),hipMemcpyDeviceToHost);
     Check_CudaErroor("Failed in velocity calculation.");
   }
   //-Stores result. | Guarda resultado.
@@ -623,7 +623,7 @@ void JGaugeSwl::CalculeGpu(double timestep,const StDivDataGpu &dvd
   cugauge::Interaction_GaugeSwl(CSP,dvd,Point0,PointDir,PointNp,MassLimit
     ,posxy,posz,code,velrhop,aux);
   tfloat3 ptsurf=TFloat3(0);
-  cudaMemcpy(&ptsurf,aux,sizeof(float3),cudaMemcpyDeviceToHost);
+  hipMemcpy(&ptsurf,aux,sizeof(float3),hipMemcpyDeviceToHost);
   Check_CudaErroor("Failed in Swl calculation.");
   //-Stores result. | Guarda resultado.
   Result.Set(timestep,ToTFloat3(Point0),ToTFloat3(Point2),ptsurf);
@@ -839,7 +839,7 @@ void JGaugeMaxZ::CalculeGpu(double timestep,const StDivDataGpu &dvd
   cugauge::Interaction_GaugeMaxz(Point0,maxdist2,dvd
     ,cxini,cxfin,yini,yfin,zini,zfin,posxy,posz,code,aux);
   tfloat3 ptsurf=TFloat3(0);
-  cudaMemcpy(&ptsurf,aux,sizeof(float3),cudaMemcpyDeviceToHost);
+  hipMemcpy(&ptsurf,aux,sizeof(float3),hipMemcpyDeviceToHost);
   Check_CudaErroor("Failed in MaxZ calculation.");
   //-Stores result. | Guarda resultado.
   Result.Set(timestep,ToTFloat3(Point0),ptsurf.z);
@@ -898,8 +898,8 @@ JGaugeForce::~JGaugeForce(){
 void JGaugeForce::Reset(){
   delete[] PartAcec; PartAcec=NULL;
  #ifdef _WITHGPU
-  if(PartAceg)cudaFree(PartAceg); PartAceg=NULL;
-  if(Auxg)    cudaFree(Auxg);     Auxg=NULL;
+  if(PartAceg)hipFree(PartAceg); PartAceg=NULL;
+  if(Auxg)    hipFree(Auxg);     Auxg=NULL;
  #endif
   MkBound=0;
   TypeParts=TpPartUnknown;
@@ -1064,7 +1064,7 @@ void JGaugeForce::CalculeGpu(double timestep,const StDivDataGpu &dvd
 {
   SetTimeStep(timestep);
   //-Initializes acceleration array to zero.
-  cudaMemset(PartAceg,0,sizeof(float3)*Count);
+  hipMemset(PartAceg,0,sizeof(float3)*Count);
   const int n=int(TypeParts==TpPartFixed || TypeParts==TpPartMoving? npbok: np);
   //-Computes acceleration in selected boundary particles.
   cugauge::Interaction_GaugeForce(CSP,dvd,n,IdBegin,Code

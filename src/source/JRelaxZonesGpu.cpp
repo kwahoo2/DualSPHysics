@@ -21,7 +21,7 @@
 #include "JRelaxZonesGpu.h"
 #ifdef _WITHGPU
   #include "JRelaxZone_ker.h"
-  #include <cuda_runtime_api.h>
+  #include <hip/hip_runtime_api.h>
 #endif
 
 
@@ -85,10 +85,10 @@ void JRelaxZoneSpectrumGpu::FreeMemoryGpu(){
   MemGpuFixed=0;
   WavesOnGpu=false;
   #ifdef _WITHGPU
-    if(WaveKlg)   cudaFree(WaveKlg);    WaveKlg=NULL;
-    if(WaveAmpg)  cudaFree(WaveAmpg);   WaveAmpg=NULL;
-    if(WaveFangg) cudaFree(WaveFangg);  WaveFangg=NULL;
-    if(WavePhaseg)cudaFree(WavePhaseg); WavePhaseg=NULL;
+    if(WaveKlg)   hipFree(WaveKlg);    WaveKlg=NULL;
+    if(WaveAmpg)  hipFree(WaveAmpg);   WaveAmpg=NULL;
+    if(WaveFangg) hipFree(WaveFangg);  WaveFangg=NULL;
+    if(WavePhaseg)hipFree(WavePhaseg); WavePhaseg=NULL;
   #endif 
 }
 
@@ -99,10 +99,10 @@ void JRelaxZoneSpectrumGpu::AllocMemoryGpu(unsigned wavecount){
   FreeMemoryGpu();
   #ifdef _WITHGPU
     const size_t m=sizeof(double)*wavecount;
-    cudaMalloc((void**)&WaveKlg,m);
-    cudaMalloc((void**)&WaveAmpg,m);
-    cudaMalloc((void**)&WaveFangg,m);
-    cudaMalloc((void**)&WavePhaseg,m);
+    hipMalloc((void**)&WaveKlg,m);
+    hipMalloc((void**)&WaveAmpg,m);
+    hipMalloc((void**)&WaveFangg,m);
+    hipMalloc((void**)&WavePhaseg,m);
     MemGpuFixed=m*4;
   #endif 
 }
@@ -115,10 +115,10 @@ void JRelaxZoneSpectrumGpu::PrepareWaveDataGpu(unsigned wavecount
 {
   AllocMemoryGpu(wavecount);
   #ifdef _WITHGPU
-    cudaMemcpy(WaveKlg   ,kl   ,sizeof(double)*wavecount,cudaMemcpyHostToDevice);
-    cudaMemcpy(WaveAmpg  ,amp  ,sizeof(double)*wavecount,cudaMemcpyHostToDevice);
-    cudaMemcpy(WaveFangg ,fang ,sizeof(double)*wavecount,cudaMemcpyHostToDevice);
-    cudaMemcpy(WavePhaseg,phase,sizeof(double)*wavecount,cudaMemcpyHostToDevice);
+    hipMemcpy(WaveKlg   ,kl   ,sizeof(double)*wavecount,hipMemcpyHostToDevice);
+    hipMemcpy(WaveAmpg  ,amp  ,sizeof(double)*wavecount,hipMemcpyHostToDevice);
+    hipMemcpy(WaveFangg ,fang ,sizeof(double)*wavecount,hipMemcpyHostToDevice);
+    hipMemcpy(WavePhaseg,phase,sizeof(double)*wavecount,hipMemcpyHostToDevice);
     WavesOnGpu=true;
   #endif 
 }
@@ -173,8 +173,8 @@ void JRelaxZonesExternalGpu::FreeMemoryGpu(){
   MemGpuFixed=0;
   GpuReady=false;
   #ifdef _WITHGPU
-    if(VelXg)cudaFree(VelXg); VelXg=NULL;
-    if(VelZg)cudaFree(VelZg); VelZg=NULL;
+    if(VelXg)hipFree(VelXg); VelXg=NULL;
+    if(VelZg)hipFree(VelZg); VelZg=NULL;
 #endif 
 }
 
@@ -185,8 +185,8 @@ void JRelaxZonesExternalGpu::AllocMemoryGpu(unsigned size,bool loadvelz){
   FreeMemoryGpu();
   #ifdef _WITHGPU
     const size_t m=sizeof(double)*size;
-    cudaMalloc((void**)&VelXg,m);
-    if(loadvelz)cudaMalloc((void**)&VelZg,m);
+    hipMalloc((void**)&VelXg,m);
+    if(loadvelz)hipMalloc((void**)&VelZg,m);
     GpuReady=true;
     MemGpuFixed=m*2;
   #endif 
@@ -198,8 +198,8 @@ void JRelaxZonesExternalGpu::AllocMemoryGpu(unsigned size,bool loadvelz){
 void JRelaxZonesExternalGpu::PrepareDataGpu(unsigned size,bool loadvelz,const double *velx,const double *velz){
   if(!GpuReady)AllocMemoryGpu(size,loadvelz);
   #ifdef _WITHGPU
-    cudaMemcpy(VelXg,velx,sizeof(double)*size,cudaMemcpyHostToDevice);
-    if(loadvelz)cudaMemcpy(VelZg,velz,sizeof(double)*size,cudaMemcpyHostToDevice);
+    hipMemcpy(VelXg,velx,sizeof(double)*size,hipMemcpyHostToDevice);
+    if(loadvelz)hipMemcpy(VelZg,velz,sizeof(double)*size,hipMemcpyHostToDevice);
   #endif 
 }
 

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -22,7 +23,8 @@
 #include "Functions.h"
 #include "FunctionsCuda.h"
 #include <cfloat>
-#include <math_constants.h>
+//#include <math_constants.h>
+#include "math_constants.h"
 
 namespace cusphinout{
 #include "FunctionsBasic_iker.h"
@@ -57,7 +59,7 @@ __global__ void KerInOutIgnoreFluidDef(unsigned n,typecode cod,typecode codnew,t
 void InOutIgnoreFluidDef(unsigned n,typecode cod,typecode codnew,typecode *code){
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerInOutIgnoreFluidDef <<<sgrid,SPHBSIZE>>> (n,cod,codnew,code);
+    hipLaunchKernelGGL(KerInOutIgnoreFluidDef, sgrid, SPHBSIZE, 0, 0, n,cod,codnew,code);
   }
 }
 
@@ -107,8 +109,8 @@ void UpdatePosFluid(byte periactive,unsigned n,unsigned pini
 {
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    if(periactive)KerUpdatePosFluid<true>  <<<sgrid,SPHBSIZE>>> (n,pini,posxy,posz,dcell,code);
-    else          KerUpdatePosFluid<false> <<<sgrid,SPHBSIZE>>> (n,pini,posxy,posz,dcell,code);
+    if(periactive)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerUpdatePosFluid<true>), sgrid, SPHBSIZE, 0, 0, n,pini,posxy,posz,dcell,code);
+    else          hipLaunchKernelGGL(HIP_KERNEL_NAME(KerUpdatePosFluid<false>), sgrid, SPHBSIZE, 0, 0, n,pini,posxy,posz,dcell,code);
   }
 }
 
@@ -152,11 +154,11 @@ unsigned InOutCreateListSimple(bool stable,unsigned n,unsigned pini
   if(n){
     //-listp size list initialized to zero.
     //-Inicializa tamanho de lista listp a cero.
-    cudaMemset(listp+n,0,sizeof(unsigned));
+    hipMemset(listp+n,0,sizeof(unsigned));
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
     const unsigned smem=(SPHBSIZE+1)*sizeof(unsigned); //-All fluid particles can be in in/out area and one position for counter.
-    KerInOutCreateListSimple <<<sgrid,SPHBSIZE,smem>>> (n,pini,code,listp);
-    cudaMemcpy(&count,listp+n,sizeof(unsigned),cudaMemcpyDeviceToHost);
+    hipLaunchKernelGGL(KerInOutCreateListSimple, sgrid, SPHBSIZE, smem, 0, n,pini,code,listp);
+    hipMemcpy(&count,listp+n,sizeof(unsigned),hipMemcpyDeviceToHost);
     //-Reorders list when stable has been activated.
     //-Reordena lista cuando stable esta activado.
     if(stable && count){ //-Does not affect results.
@@ -243,12 +245,12 @@ unsigned InOutCreateList(bool stable,unsigned n,unsigned pini
   if(n){
     //-listp size list initialized to zero.
     //-Inicializa tamanho de lista listp a cero.
-    cudaMemset(listp+n,0,sizeof(unsigned));
+    hipMemset(listp+n,0,sizeof(unsigned));
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
     const unsigned smem=(SPHBSIZE+1)*sizeof(unsigned); //-All fluid particles can be in in/out area and one position for counter.
-    KerInOutCreateList <<<sgrid,SPHBSIZE,smem>>> (n,pini,chkinputmask,nzone,cfgzone
+    hipLaunchKernelGGL(KerInOutCreateList, sgrid, SPHBSIZE, smem, 0, n,pini,chkinputmask,nzone,cfgzone
       ,planes,Float3(freemin),Float3(freemax),boxlimit,posxy,posz,code,listp);
-    cudaMemcpy(&count,listp+n,sizeof(unsigned),cudaMemcpyDeviceToHost);
+    hipMemcpy(&count,listp+n,sizeof(unsigned),hipMemcpyDeviceToHost);
     //-Reorders list when stable has been activated.
     //-Reordena lista cuando stable esta activado.
     if(stable && count){ //-Does not affect results.
@@ -344,7 +346,7 @@ void InOutSetAnalyticalData(unsigned n,const unsigned *inoutpart
 {
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerInOutSetAnalyticalData <<<sgrid,SPHBSIZE>>> (n,inoutpart,izone,rmode,vmode
+    hipLaunchKernelGGL(KerInOutSetAnalyticalData, sgrid, SPHBSIZE, 0, 0, n,inoutpart,izone,rmode,vmode
       ,vprof,refillspfull,timestep,zsurfv,Float4(veldata),Float4(veldata2)
       ,Float3(dirdata),coefhydro,rhopzero,gamma,code,posz,zsurfpart,velrhop);
   }
@@ -379,7 +381,7 @@ void InoutClearInteractionVars(unsigned npf,unsigned pini,const typecode *code
 {
   if(npf){
     dim3 sgrid=GetSimpleGridSize(npf,SPHBSIZE);
-    KerInoutClearInteractionVars <<<sgrid,SPHBSIZE>>> (npf,pini,code,ace,ar,viscdt,shiftposfs);
+    hipLaunchKernelGGL(KerInoutClearInteractionVars, sgrid, SPHBSIZE, 0, 0, npf,pini,code,ace,ar,viscdt,shiftposfs);
   }
 }
 
@@ -407,7 +409,7 @@ void InOutUpdateVelrhopM1(unsigned n,const int *inoutpart
 {
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerInOutUpdateVelrhopM1 <<<sgrid,SPHBSIZE>>> (n,inoutpart,velrhop,velrhopm1);
+    hipLaunchKernelGGL(KerInOutUpdateVelrhopM1, sgrid, SPHBSIZE, 0, 0, n,inoutpart,velrhop,velrhopm1);
   }
 }
 
@@ -472,7 +474,7 @@ void InOutComputeStep(unsigned n,int *inoutpart,const float4 *planes
 {
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerInOutComputeStep <<<sgrid,SPHBSIZE>>> (n,inoutpart,planes,width,cfgupdate,zsurfv
+    hipLaunchKernelGGL(KerInOutComputeStep, sgrid, SPHBSIZE, 0, 0, n,inoutpart,planes,width,cfgupdate,zsurfv
       ,codenewpart,posxy,posz,zsurfok,code,newizone);
   }
 }
@@ -515,11 +517,11 @@ unsigned InOutListCreate(bool stable,unsigned n,unsigned nmax,const byte *newizo
   if(n){
     //-inoutpart size list initialized to zero.
     //-Inicializa tamanho de lista inoutpart a cero.
-    cudaMemset(inoutpart+nmax,0,sizeof(unsigned));
+    hipMemset(inoutpart+nmax,0,sizeof(unsigned));
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
     const unsigned smem=(SPHBSIZE+1)*sizeof(unsigned); //-All fluid particles can be in in/out area and one position for counter.
-    KerInOutListCreate <<<sgrid,SPHBSIZE,smem>>> (n,nmax,newizone,inoutpart);
-    cudaMemcpy(&count,inoutpart+nmax,sizeof(unsigned),cudaMemcpyDeviceToHost);
+    hipLaunchKernelGGL(KerInOutListCreate, sgrid, SPHBSIZE, smem, 0, n,nmax,newizone,inoutpart);
+    hipMemcpy(&count,inoutpart+nmax,sizeof(unsigned),hipMemcpyDeviceToHost);
     //-Reorders list if it is valid and stable has been activated.
     //-Reordena lista si es valida y stable esta activado.
     if(stable && count && count<=nmax){
@@ -569,8 +571,8 @@ void InOutCreateNewInlet(byte periactive,unsigned newn
 {
   if(newn){
     dim3 sgrid=GetSimpleGridSize(newn,SPHBSIZE);
-    if(periactive)KerInOutCreateNewInlet<true>  <<<sgrid,SPHBSIZE>>> (newn,inoutpart,inoutcount,newizone,np,idnext,codenewpart,dirdata,width,posxy,posz,dcell,code,idp,velrhop);
-    else          KerInOutCreateNewInlet<false> <<<sgrid,SPHBSIZE>>> (newn,inoutpart,inoutcount,newizone,np,idnext,codenewpart,dirdata,width,posxy,posz,dcell,code,idp,velrhop);
+    if(periactive)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInOutCreateNewInlet<true>), sgrid, SPHBSIZE, 0, 0, newn,inoutpart,inoutcount,newizone,np,idnext,codenewpart,dirdata,width,posxy,posz,dcell,code,idp,velrhop);
+    else          hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInOutCreateNewInlet<false>), sgrid, SPHBSIZE, 0, 0, newn,inoutpart,inoutcount,newizone,np,idnext,codenewpart,dirdata,width,posxy,posz,dcell,code,idp,velrhop);
   }
 }
 
@@ -603,8 +605,8 @@ void InOutFillMove(byte periactive,unsigned n,const unsigned *inoutpart
 {
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    if(periactive)KerInOutFillMove<true>  <<<sgrid,SPHBSIZE>>> (n,inoutpart,dt,velrhop,posxy,posz,dcell,code);
-    else          KerInOutFillMove<false> <<<sgrid,SPHBSIZE>>> (n,inoutpart,dt,velrhop,posxy,posz,dcell,code);
+    if(periactive)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInOutFillMove<true>), sgrid, SPHBSIZE, 0, 0, n,inoutpart,dt,velrhop,posxy,posz,dcell,code);
+    else          hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInOutFillMove<false>), sgrid, SPHBSIZE, 0, 0, n,inoutpart,dt,velrhop,posxy,posz,dcell,code);
   }
 }
 
@@ -656,7 +658,7 @@ void InOutFillProjection(unsigned n,const unsigned *inoutpart
 {
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerInOutFillProjection <<<sgrid,SPHBSIZE>>> (n,inoutpart,cfgupdate,planes,posxy,posz
+    hipLaunchKernelGGL(KerInOutFillProjection, sgrid, SPHBSIZE, 0, 0, n,inoutpart,cfgupdate,planes,posxy,posz
       ,code,prodist,proposxy,proposz);
   }
 }
@@ -734,13 +736,13 @@ unsigned InOutFillListCreate(bool stable,unsigned npt
   if(npt){
     //-inoutpart size list initialized to zero.
     //-Inicializa tamanho de lista inoutpart a cero.
-    cudaMemset(inoutpart+nmax,0,sizeof(unsigned));
+    hipMemset(inoutpart+nmax,0,sizeof(unsigned));
     dim3 sgrid=GetSimpleGridSize(npt,SPHBSIZE);
     const unsigned smem=(SPHBSIZE+1)*sizeof(unsigned); //-All fluid particles can be in in/out area and one position for counter.
-    KerInOutFillListCreate <<<sgrid,SPHBSIZE,smem>>> (npt,ptposxy,ptposz,zsurfok
+    hipLaunchKernelGGL(KerInOutFillListCreate, sgrid, SPHBSIZE, smem, 0, npt,ptposxy,ptposz,zsurfok
       ,ptzone,cfgupdate,zsurf,width,npropt,prodist,proposxy,proposz,dpmin,dpmin2
       ,dp,ptdist,nmax,inoutpart);
-    cudaMemcpy(&count,inoutpart+nmax,sizeof(unsigned),cudaMemcpyDeviceToHost);
+    hipMemcpy(&count,inoutpart+nmax,sizeof(unsigned),hipMemcpyDeviceToHost);
     //-Reorders list if it is valid and stable has been activated.
     //-Reordena lista si es valida y stable esta activado.
     if(stable && count && count<=nmax){
@@ -789,8 +791,8 @@ void InOutFillCreate(byte periactive,unsigned newn,const unsigned *newinoutpart
 {
   if(newn){
     dim3 sgrid=GetSimpleGridSize(newn,SPHBSIZE);
-    if(periactive)KerInOutFillCreate<true>  <<<sgrid,SPHBSIZE>>> (newn,newinoutpart,ptposxy,ptposz,ptzone,ptauxdist,np,idnext,codenewpart,dirdata,posxy,posz,dcell,code,idp,velrhop);
-    else          KerInOutFillCreate<false> <<<sgrid,SPHBSIZE>>> (newn,newinoutpart,ptposxy,ptposz,ptzone,ptauxdist,np,idnext,codenewpart,dirdata,posxy,posz,dcell,code,idp,velrhop);
+    if(periactive)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInOutFillCreate<true>), sgrid, SPHBSIZE, 0, 0, newn,newinoutpart,ptposxy,ptposz,ptzone,ptauxdist,np,idnext,codenewpart,dirdata,posxy,posz,dcell,code,idp,velrhop);
+    else          hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInOutFillCreate<false>), sgrid, SPHBSIZE, 0, 0, newn,newinoutpart,ptposxy,ptposz,ptzone,ptauxdist,np,idnext,codenewpart,dirdata,posxy,posz,dcell,code,idp,velrhop);
   }
 }
 
@@ -1366,16 +1368,16 @@ template<TpKernel tker> void Interaction_InOutExtrapT(byte doublemode,bool simul
     dim3 sgrid=GetSimpleGridSize(inoutcount,bsize);
     if(simulate2d){ const bool sim2d=true;
       switch(doublemode){
-        case 1:  KerInteractionInOutExtrap_FastSingle<sim2d,tker> <<<sgrid,bsize>>> (inoutcount,inoutpart,cfgzone,computerhopmask,computevelmask,planes,width,dirdata,determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
-        case 2:  KerInteractionInOutExtrap_Single    <sim2d,tker> <<<sgrid,bsize>>> (inoutcount,inoutpart,cfgzone,computerhopmask,computevelmask,planes,width,dirdata,determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
-        case 3:  KerInteractionInOutExtrap_Double    <sim2d,tker> <<<sgrid,bsize>>> (inoutcount,inoutpart,cfgzone,computerhopmask,computevelmask,planes,width,dirdata,determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
+        case 1:  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionInOutExtrap_FastSingle<sim2d,tker>), sgrid, bsize, 0, 0, inoutcount,inoutpart,cfgzone,computerhopmask,computevelmask,planes,width,dirdata,determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
+        case 2:  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionInOutExtrap_Single<sim2d,tker>), sgrid, bsize, 0, 0, inoutcount,inoutpart,cfgzone,computerhopmask,computevelmask,planes,width,dirdata,determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
+        case 3:  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionInOutExtrap_Double<sim2d,tker>), sgrid, bsize, 0, 0, inoutcount,inoutpart,cfgzone,computerhopmask,computevelmask,planes,width,dirdata,determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
       }
     }
     else{           const bool sim2d=false;
       switch(doublemode){
-        case 1:  KerInteractionInOutExtrap_FastSingle<sim2d,tker> <<<sgrid,bsize>>> (inoutcount,inoutpart,cfgzone,computerhopmask,computevelmask,planes,width,dirdata,determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
-        case 2:  KerInteractionInOutExtrap_Single    <sim2d,tker> <<<sgrid,bsize>>> (inoutcount,inoutpart,cfgzone,computerhopmask,computevelmask,planes,width,dirdata,determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
-        case 3:  KerInteractionInOutExtrap_Double    <sim2d,tker> <<<sgrid,bsize>>> (inoutcount,inoutpart,cfgzone,computerhopmask,computevelmask,planes,width,dirdata,determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
+        case 1:  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionInOutExtrap_FastSingle<sim2d,tker>), sgrid, bsize, 0, 0, inoutcount,inoutpart,cfgzone,computerhopmask,computevelmask,planes,width,dirdata,determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
+        case 2:  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionInOutExtrap_Single<sim2d,tker>), sgrid, bsize, 0, 0, inoutcount,inoutpart,cfgzone,computerhopmask,computevelmask,planes,width,dirdata,determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
+        case 3:  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionInOutExtrap_Double<sim2d,tker>), sgrid, bsize, 0, 0, inoutcount,inoutpart,cfgzone,computerhopmask,computevelmask,planes,width,dirdata,determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
       }
     }
   }
@@ -1767,16 +1769,16 @@ template<TpKernel tker> void Interaction_BoundCorrT(byte doublemode,bool simulat
     dim3 sgridb=GetSimpleGridSize(npbok,bsbound);
     if(simulate2d){ const bool sim2d=true;
       switch(doublemode){
-        case 1:  KerInteractionBoundCorr_FastSingle<sim2d,tker> <<<sgridb,bsbound>>> (npbok,boundcode,Float4(plane),Float3(direction),determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
-        case 2:  KerInteractionBoundCorr_Single    <sim2d,tker> <<<sgridb,bsbound>>> (npbok,boundcode,Float4(plane),Float3(direction),determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
-        case 3:  KerInteractionBoundCorr_Double    <sim2d,tker> <<<sgridb,bsbound>>> (npbok,boundcode,Float4(plane),Float3(direction),determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
+        case 1:  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionBoundCorr_FastSingle<sim2d,tker>), sgridb, bsbound, 0, 0, npbok,boundcode,Float4(plane),Float3(direction),determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
+        case 2:  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionBoundCorr_Single<sim2d,tker>), sgridb, bsbound, 0, 0, npbok,boundcode,Float4(plane),Float3(direction),determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
+        case 3:  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionBoundCorr_Double<sim2d,tker>), sgridb, bsbound, 0, 0, npbok,boundcode,Float4(plane),Float3(direction),determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
       }
     }
     else{           const bool sim2d=false;
       switch(doublemode){
-        case 1:  KerInteractionBoundCorr_FastSingle<sim2d,tker> <<<sgridb,bsbound>>> (npbok,boundcode,Float4(plane),Float3(direction),determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
-        case 2:  KerInteractionBoundCorr_Single    <sim2d,tker> <<<sgridb,bsbound>>> (npbok,boundcode,Float4(plane),Float3(direction),determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
-        case 3:  KerInteractionBoundCorr_Double    <sim2d,tker> <<<sgridb,bsbound>>> (npbok,boundcode,Float4(plane),Float3(direction),determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
+        case 1:  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionBoundCorr_FastSingle<sim2d,tker>), sgridb, bsbound, 0, 0, npbok,boundcode,Float4(plane),Float3(direction),determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
+        case 2:  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionBoundCorr_Single<sim2d,tker>), sgridb, bsbound, 0, 0, npbok,boundcode,Float4(plane),Float3(direction),determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
+        case 3:  hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInteractionBoundCorr_Double<sim2d,tker>), sgridb, bsbound, 0, 0, npbok,boundcode,Float4(plane),Float3(direction),determlimit,dvd.scelldiv,dvd.nc,dvd.cellzero,beginendcellfluid,posxy,posz,code,idp,velrhop);  break;
       }
     }
   }
@@ -1833,8 +1835,8 @@ void InOutInterpolateTime(unsigned npt,double time,double t0,double t1
   if(npt){
     const double fxtime=((time-t0)/(t1-t0));
     dim3 sgrid=GetSimpleGridSize(npt,SPHBSIZE);
-    KerInOutInterpolateTime <<<sgrid,SPHBSIZE>>> (npt,fxtime,velx0,velx1,velx);
-    if(velz0)KerInOutInterpolateTime <<<sgrid,SPHBSIZE>>> (npt,fxtime,velz0,velz1,velz);
+    hipLaunchKernelGGL(KerInOutInterpolateTime, sgrid, SPHBSIZE, 0, 0, npt,fxtime,velx0,velx1,velx);
+    if(velz0)hipLaunchKernelGGL(KerInOutInterpolateTime, sgrid, SPHBSIZE, 0, 0, npt,fxtime,velz0,velz1,velz);
   }
 }
 
@@ -1879,7 +1881,7 @@ void InOutInterpolateZVel(unsigned izone,double posminz,double dpz,int nz1
 {
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,SPHBSIZE);
-    KerInOutInterpolateZVel <<<sgrid,SPHBSIZE>>> (izone,posminz,dpz,nz1,velx,velz,np,plist,posz,code,velrhop,velcorr);
+    hipLaunchKernelGGL(KerInOutInterpolateZVel, sgrid, SPHBSIZE, 0, 0, izone,posminz,dpz,nz1,velx,velz,np,plist,posz,code,velrhop,velcorr);
   }
 }
 
@@ -1904,7 +1906,7 @@ void InOutInterpolateResetZVel(unsigned izone,unsigned np,const int *plist
 {
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,SPHBSIZE);
-    KerInOutInterpolateResetZVel <<<sgrid,SPHBSIZE>>> (izone,np,plist,code,velrhop);
+    hipLaunchKernelGGL(KerInOutInterpolateResetZVel, sgrid, SPHBSIZE, 0, 0, izone,np,plist,code,velrhop);
   }
 }
 

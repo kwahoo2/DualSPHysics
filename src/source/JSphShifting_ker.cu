@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -60,16 +61,16 @@ template<bool first,bool dbl> __global__ void KerInitGpuPosMax(unsigned n,unsign
 //==============================================================================
 void InitGpuPosMax(bool tfirst,bool tdbl,unsigned n,unsigned pini
   ,const tdouble3& pmin1,const tdouble3& pmax1,const tdouble3& pmin2,const tdouble3& pmax2
-  ,const double2* posxy,const double* posz,float4* shiftposfs,cudaStream_t stm)
+  ,const double2* posxy,const double* posz,float4* shiftposfs,hipStream_t stm)
 {
   if(n){
     const dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
     if(tfirst){ const bool first=true;
-      if(tdbl)KerInitGpuPosMax<first,true > <<<sgrid,SPHBSIZE,0,stm>>> (n,pini,Double3(pmin1),Double3(pmax1),Double3(pmin2),Double3(pmax2),posxy,posz,shiftposfs);
-      else    KerInitGpuPosMax<first,false> <<<sgrid,SPHBSIZE,0,stm>>> (n,pini,Double3(pmin1),Double3(pmax1),Double3(pmin2),Double3(pmax2),posxy,posz,shiftposfs);
+      if(tdbl)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInitGpuPosMax<first,true >), sgrid, SPHBSIZE, 0, stm, n,pini,Double3(pmin1),Double3(pmax1),Double3(pmin2),Double3(pmax2),posxy,posz,shiftposfs);
+      else    hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInitGpuPosMax<first,false>), sgrid, SPHBSIZE, 0, stm, n,pini,Double3(pmin1),Double3(pmax1),Double3(pmin2),Double3(pmax2),posxy,posz,shiftposfs);
     }else{      const bool first=false;
-      if(tdbl)KerInitGpuPosMax<first,true > <<<sgrid,SPHBSIZE,0,stm>>> (n,pini,Double3(pmin1),Double3(pmax1),Double3(pmin2),Double3(pmax2),posxy,posz,shiftposfs);
-      else    KerInitGpuPosMax<first,false> <<<sgrid,SPHBSIZE,0,stm>>> (n,pini,Double3(pmin1),Double3(pmax1),Double3(pmin2),Double3(pmax2),posxy,posz,shiftposfs);
+      if(tdbl)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInitGpuPosMax<first,true >), sgrid, SPHBSIZE, 0, stm, n,pini,Double3(pmin1),Double3(pmax1),Double3(pmin2),Double3(pmax2),posxy,posz,shiftposfs);
+      else    hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInitGpuPosMax<first,false>), sgrid, SPHBSIZE, 0, stm, n,pini,Double3(pmin1),Double3(pmax1),Double3(pmin2),Double3(pmax2),posxy,posz,shiftposfs);
     }
   }
 }
@@ -102,16 +103,16 @@ template<bool first,bool dbl> __global__ void KerInitGpuPlanes(unsigned n,unsign
 void InitGpuPlanes(bool tfirst,bool tdbl,unsigned n,unsigned pini
   ,const tplane3d& plax1,const tplane3d& play1,const tplane3d& plaz1,const tdouble3& pladis1
   ,const tplane3d& plax2,const tplane3d& play2,const tplane3d& plaz2,const tdouble3& pladis2
-  ,const double2* posxy,const double* posz,float4* shiftposfs,cudaStream_t stm)
+  ,const double2* posxy,const double* posz,float4* shiftposfs,hipStream_t stm)
 {
   if(n){
     const dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
     if(tfirst){ const bool first=true;
-      if(tdbl)KerInitGpuPlanes<first,true > <<<sgrid,SPHBSIZE,0,stm>>> (n,pini,Double4(plax1),Double4(play1),Double4(plaz1),Double3(pladis1),Double4(plax2),Double4(play2),Double4(plaz2),Double3(pladis2),posxy,posz,shiftposfs);
-      else    KerInitGpuPlanes<first,false> <<<sgrid,SPHBSIZE,0,stm>>> (n,pini,Double4(plax1),Double4(play1),Double4(plaz1),Double3(pladis1),Double4(plax2),Double4(play2),Double4(plaz2),Double3(pladis2),posxy,posz,shiftposfs);
+      if(tdbl)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInitGpuPlanes<first,true >), sgrid, SPHBSIZE, 0, stm, n,pini,Double4(plax1),Double4(play1),Double4(plaz1),Double3(pladis1),Double4(plax2),Double4(play2),Double4(plaz2),Double3(pladis2),posxy,posz,shiftposfs);
+      else    hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInitGpuPlanes<first,false>), sgrid, SPHBSIZE, 0, stm, n,pini,Double4(plax1),Double4(play1),Double4(plaz1),Double3(pladis1),Double4(plax2),Double4(play2),Double4(plaz2),Double3(pladis2),posxy,posz,shiftposfs);
     }else{      const bool first=false;
-      if(tdbl)KerInitGpuPlanes<first,true > <<<sgrid,SPHBSIZE,0,stm>>> (n,pini,Double4(plax1),Double4(play1),Double4(plaz1),Double3(pladis1),Double4(plax2),Double4(play2),Double4(plaz2),Double3(pladis2),posxy,posz,shiftposfs);
-      else    KerInitGpuPlanes<first,false> <<<sgrid,SPHBSIZE,0,stm>>> (n,pini,Double4(plax1),Double4(play1),Double4(plaz1),Double3(pladis1),Double4(plax2),Double4(play2),Double4(plaz2),Double3(pladis2),posxy,posz,shiftposfs);
+      if(tdbl)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInitGpuPlanes<first,true >), sgrid, SPHBSIZE, 0, stm, n,pini,Double4(plax1),Double4(play1),Double4(plaz1),Double3(pladis1),Double4(plax2),Double4(play2),Double4(plaz2),Double3(pladis2),posxy,posz,shiftposfs);
+      else    hipLaunchKernelGGL(HIP_KERNEL_NAME(KerInitGpuPlanes<first,false>), sgrid, SPHBSIZE, 0, stm, n,pini,Double4(plax1),Double4(play1),Double4(plaz1),Double3(pladis1),Double4(plax2),Double4(play2),Double4(plaz2),Double3(pladis2),posxy,posz,shiftposfs);
     }
   }
 }
@@ -156,11 +157,11 @@ __global__ void KerRunShifting(unsigned n,unsigned pini,double dt
 //==============================================================================
 void RunShifting(unsigned n,unsigned pini,double dt
   ,double coefumagn,float shifttfs,double coeftfs,float maxdist
-  ,const float4 *velrhop,float4 *shiftposfs,cudaStream_t stm)
+  ,const float4 *velrhop,float4 *shiftposfs,hipStream_t stm)
 {
   if(n){
     const dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
-    KerRunShifting <<<sgrid,SPHBSIZE,0,stm>>> (n,pini,dt,coefumagn,shifttfs,coeftfs,maxdist,velrhop,shiftposfs);
+    hipLaunchKernelGGL(KerRunShifting, sgrid, SPHBSIZE, 0, stm, n,pini,dt,coefumagn,shifttfs,coeftfs,maxdist,velrhop,shiftposfs);
   }
 }
 

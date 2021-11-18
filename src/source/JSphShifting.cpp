@@ -423,10 +423,10 @@ void JSphShifting::RunCpu(unsigned n,unsigned pini,double dt,const tfloat4* velr
 /// Selecciona particulas para shifting e inicializa shiftposfs[].
 //==============================================================================
 void JSphShifting::InitGpu(unsigned n,unsigned pini,const double2* posxy,const double* posz
-  ,float4* shiftposfs,cudaStream_t stm)const
+  ,float4* shiftposfs,hipStream_t stm)const
 {
   const unsigned nz=GetCount();
-  if(!nz)cudaMemsetAsync(shiftposfs+pini,0,sizeof(float4)*n,stm);  //ShiftPosfsg[]=0
+  if(!nz)hipMemsetAsync(shiftposfs+pini,0,sizeof(float4)*n,stm);  //ShiftPosfsg[]=0
   else{
     //-Zones defined by position min-max.
     unsigned cz=0;
@@ -459,7 +459,7 @@ void JSphShifting::InitGpu(unsigned n,unsigned pini,const double2* posxy,const d
 /// Calcula Shifting final para posicion de particulas.
 //==============================================================================
 void JSphShifting::RunGpu(unsigned n,unsigned pini,double dt,const float4* velrhop
-  ,float4* shiftposfs,cudaStream_t stm)const
+  ,float4* shiftposfs,hipStream_t stm)const
 {
   const double coefumagn=dt*ShiftCoef*KernelH;
   const float coeftfs=(Simulate2D? 2.0f: 3.0f)-ShiftTFS;

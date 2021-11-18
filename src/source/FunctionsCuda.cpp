@@ -32,9 +32,9 @@ namespace fcuda{
 void CheckCudaErroorFun(const char *const file,int const line,const char *const fun
   ,std::string msg)
 {
-  const cudaError_t cuerr=cudaGetLastError();
-  if(cuerr!=cudaSuccess){
-    msg=msg+fun::PrintStr(" (CUDA error %d (%s)).\n",cuerr,cudaGetErrorString(cuerr)); 
+  const hipError_t cuerr=hipGetLastError();
+  if(cuerr!=hipSuccess){
+    msg=msg+fun::PrintStr(" (CUDA error %d (%s)).\n",cuerr,hipGetErrorString(cuerr)); 
     fun::RunExceptioonFun(file,line,fun,msg);
   }
 }
@@ -42,7 +42,7 @@ void CheckCudaErroorFun(const char *const file,int const line,const char *const 
 //==============================================================================
 /// Returns information about selected GPU (code from deviceQuery example).
 //==============================================================================
-inline bool IsGPUCapableP2P(const cudaDeviceProp *pProp){
+inline bool IsGPUCapableP2P(const hipDeviceProp_t *pProp){
 #ifdef _WIN32
     return(pProp->major>=2 && pProp->tccDriver? true: false);
 #else
@@ -54,10 +54,10 @@ inline bool IsGPUCapableP2P(const cudaDeviceProp *pProp){
 /// Returns name about selected GPU.
 //==============================================================================
 std::string GetCudaDeviceName(int gid){
-  cudaSetDevice(gid);
+  hipSetDevice(gid);
   Check_CudaErroorFun("Failed selecting device.");
-  cudaDeviceProp deviceProp;
-  cudaGetDeviceProperties(&deviceProp,gid);
+  hipDeviceProp_t deviceProp;
+  hipGetDeviceProperties(&deviceProp,gid);
   Check_CudaErroorFun("Failed getting selected device info.");
   return(deviceProp.name);
 }
@@ -66,10 +66,10 @@ std::string GetCudaDeviceName(int gid){
 /// Returns information about selected GPU (code from deviceQuery example).
 //==============================================================================
 StGpuInfo GetCudaDeviceInfo(int gid){
-  cudaSetDevice(gid);
+  hipSetDevice(gid);
   Check_CudaErroorFun("Failed selecting device.");
-  cudaDeviceProp deviceProp;
-  cudaGetDeviceProperties(&deviceProp,gid);
+  hipDeviceProp_t deviceProp;
+  hipGetDeviceProperties(&deviceProp,gid);
   Check_CudaErroorFun("Failed getting selected device info.");
   StGpuInfo g;
   g.id=gid;
@@ -91,8 +91,8 @@ StGpuInfo GetCudaDeviceInfo(int gid){
   g.regsblock=deviceProp.regsPerBlock;
   g.maxthmp=deviceProp.maxThreadsPerMultiProcessor;
   g.maxthblock=deviceProp.maxThreadsPerBlock;
-  g.overlap=deviceProp.deviceOverlap;
-  g.overlapcount=deviceProp.asyncEngineCount;
+//g.overlap=deviceProp.deviceOverlap;
+//g.overlapcount=deviceProp.asyncEngineCount;
   g.limitrun=deviceProp.kernelExecTimeoutEnabled;
   g.integrated=deviceProp.integrated;
   g.maphostmem=deviceProp.canMapHostMemory;
@@ -100,7 +100,7 @@ StGpuInfo GetCudaDeviceInfo(int gid){
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
   g.tccdriver=deviceProp.tccDriver;
 #endif
-  g.uva=deviceProp.unifiedAddressing;
+//g.uva=deviceProp.unifiedAddressing;
   g.pcidomain=deviceProp.pciDomainID;
   g.pcibus=deviceProp.pciBusID;
   g.pcidevice=deviceProp.pciDeviceID;
@@ -113,12 +113,12 @@ StGpuInfo GetCudaDeviceInfo(int gid){
   //:printf("------->Check possibility for peer access.\n");
   if(g.rdma){
     int deviceCount=0;
-    cudaGetDeviceCount(&deviceCount);
+    hipGetDeviceCount(&deviceCount);
     Check_CudaErroorFun("Failed getting devices info.");
     g.countp2pto=0;
     for(int cg=0;cg<deviceCount;cg++)if(cg!=gid){
       int can_access_peer;
-      cudaDeviceCanAccessPeer(&can_access_peer,gid,cg);
+      hipDeviceCanAccessPeer(&can_access_peer,gid,cg);
       if(can_access_peer){
         if(g.countp2pto>=g.sizep2pto)fun::Run_ExceptioonFun("StGpuInfo.sizep2pto is not enough.");
         g.p2pto[g.countp2pto++]=cg;
@@ -127,7 +127,7 @@ StGpuInfo GetCudaDeviceInfo(int gid){
     int count2=0;
     for(int cg=0;cg<deviceCount;cg++)if(cg!=gid){
       int can_access_peer;
-      cudaDeviceCanAccessPeer(&can_access_peer,cg,gid);
+      hipDeviceCanAccessPeer(&can_access_peer,cg,gid);
       if(can_access_peer && (count2>=g.sizep2pto || g.p2pto[count2++]!=cg))
         fun::Run_ExceptioonFun("There is no agreement between to and from peer access.");
     }
@@ -141,17 +141,17 @@ StGpuInfo GetCudaDeviceInfo(int gid){
 int GetCudaDevicesInfo(std::vector<std::string> *gpuinfo,std::vector<StGpuInfo> *gpuprops){
   if(gpuinfo)gpuinfo->push_back("[CUDA Capable device(s)]");
   int deviceCount=0;
-  cudaGetDeviceCount(&deviceCount);
+  hipGetDeviceCount(&deviceCount);
   Check_CudaErroorFun("Failed getting devices info.");
   if(gpuinfo){
     if(!deviceCount)gpuinfo->push_back("  There are no available device(s) that support CUDA");
     else gpuinfo->push_back(fun::PrintStr("  Detected %d CUDA Capable device(s)",deviceCount));
   }
-  int gid0=-10; cudaGetDevice(&gid0);
+  int gid0=-10; hipGetDevice(&gid0);
   //-Driver information.
   int driverVersion=0,runtimeVersion=0;
-  cudaDriverGetVersion(&driverVersion);
-  cudaRuntimeGetVersion(&runtimeVersion);
+  hipDriverGetVersion(&driverVersion);
+  hipRuntimeGetVersion(&runtimeVersion);
   if(gpuinfo)gpuinfo->push_back(fun::PrintStr("  CUDA Driver Version / Runtime Version: %d.%d / %d.%d",driverVersion/1000,(driverVersion%100)/10,runtimeVersion/1000,(runtimeVersion%100)/10));
   //-Devices information.
   for(int dev=0;dev<deviceCount;++dev){
@@ -192,8 +192,8 @@ int GetCudaDevicesInfo(std::vector<std::string> *gpuinfo,std::vector<StGpuInfo> 
     }
     if(gpuprops)gpuprops->push_back(g);
   }
-  int gid1=-10; cudaGetDevice(&gid1);
-  if(gid0>=0 && gid0!=gid1)cudaSetDevice(gid0);
+  int gid1=-10; hipGetDevice(&gid1);
+  if(gid0>=0 && gid0!=gid1)hipSetDevice(gid0);
   return(deviceCount);
 }
 
@@ -246,98 +246,98 @@ int _ConvertSMVer2Cores(int major, int minor){
 /// Allocates memory for word on GPU.
 //==============================================================================
 size_t Malloc(byte **ptr,unsigned count){
-  size_t size=sizeof(byte)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(byte)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for word on GPU.
 //==============================================================================
 size_t Malloc(word **ptr,unsigned count){
-  size_t size=sizeof(word)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(word)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for unsigned on GPU.
 //==============================================================================
 size_t Malloc(unsigned **ptr,unsigned count){
-  size_t size=sizeof(unsigned)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(unsigned)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for uint4 on GPU.
 //==============================================================================
 size_t Malloc(uint4 **ptr,unsigned count){
-  size_t size=sizeof(uint4)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(uint4)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for int on GPU.
 //==============================================================================
 size_t Malloc(int **ptr,unsigned count){
-  size_t size=sizeof(int)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(int)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for int2 on GPU.
 //==============================================================================
 size_t Malloc(int2 **ptr,unsigned count){
-  size_t size=sizeof(int2)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(int2)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for int3 on GPU.
 //==============================================================================
 size_t Malloc(int3 **ptr,unsigned count){
-  size_t size=sizeof(int3)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(int3)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for float on GPU.
 //==============================================================================
 size_t Malloc(float **ptr,unsigned count){
-  size_t size=sizeof(float)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(float)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for float2 on GPU.
 //==============================================================================
 size_t Malloc(float2 **ptr,unsigned count){
-  size_t size=sizeof(float2)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(float2)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for float3 on GPU.
 //==============================================================================
 size_t Malloc(float3 **ptr,unsigned count){
-  size_t size=sizeof(float3)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(float3)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for float4 on GPU.
 //==============================================================================
 size_t Malloc(float4 **ptr,unsigned count){
-  size_t size=sizeof(float4)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(float4)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for double on GPU.
 //==============================================================================
 size_t Malloc(double **ptr,unsigned count){
-  size_t size=sizeof(double)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(double)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for double2 on GPU.
 //==============================================================================
 size_t Malloc(double2 **ptr,unsigned count){
-  size_t size=sizeof(double2)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(double2)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 //==============================================================================
 /// Allocates memory for double3 on GPU.
 //==============================================================================
 size_t Malloc(double3 **ptr,unsigned count){
-  size_t size=sizeof(double3)*count;  cudaMalloc((void**)ptr,size);  return(size);
+  size_t size=sizeof(double3)*count;  hipMalloc((void**)ptr,size);  return(size);
 }
 
 
@@ -349,63 +349,63 @@ size_t Malloc(double3 **ptr,unsigned count){
 /// Allocates pinned memory for byte on CPU.
 //==============================================================================
 size_t HostAlloc(byte **ptr,unsigned count){
-  size_t size=sizeof(byte)*count;  cudaHostAlloc((void**)ptr,size,cudaHostAllocDefault);  return(size);
+  size_t size=sizeof(byte)*count;  hipHostAlloc((void**)ptr,size,hipHostMallocDefault);  return(size);
 }
 
 //==============================================================================
 /// Allocates pinned memory for word on CPU.
 //==============================================================================
 size_t HostAlloc(word **ptr,unsigned count){
-  size_t size=sizeof(word)*count;  cudaHostAlloc((void**)ptr,size,cudaHostAllocDefault);  return(size);
+  size_t size=sizeof(word)*count;  hipHostAlloc((void**)ptr,size,hipHostMallocDefault);  return(size);
 }
 
 //==============================================================================
 /// Allocates pinned memory for unsigned on CPU.
 //==============================================================================
 size_t HostAlloc(unsigned **ptr,unsigned count){
-  size_t size=sizeof(unsigned)*count;  cudaHostAlloc((void**)ptr,size,cudaHostAllocDefault);  return(size);
+  size_t size=sizeof(unsigned)*count;  hipHostAlloc((void**)ptr,size,hipHostMallocDefault);  return(size);
 }
 
 //==============================================================================
 /// Allocates pinned memory for int on CPU.
 //==============================================================================
 size_t HostAlloc(int **ptr,unsigned count){
-  size_t size=sizeof(int)*count;  cudaHostAlloc((void**)ptr,size,cudaHostAllocDefault);  return(size);
+  size_t size=sizeof(int)*count;  hipHostAlloc((void**)ptr,size,hipHostMallocDefault);  return(size);
 }
 
 //==============================================================================
 /// Allocates pinned memory for int2 on CPU.
 //==============================================================================
 size_t HostAlloc(int2 **ptr,unsigned count){
-  size_t size=sizeof(int2)*count;  cudaHostAlloc((void**)ptr,size,cudaHostAllocDefault);  return(size);
+  size_t size=sizeof(int2)*count;  hipHostAlloc((void**)ptr,size,hipHostMallocDefault);  return(size);
 }
 
 //==============================================================================
 /// Allocates pinned memory for float on CPU.
 //==============================================================================
 size_t HostAlloc(float **ptr,unsigned count){
-  size_t size=sizeof(float)*count;  cudaHostAlloc((void**)ptr,size,cudaHostAllocDefault);  return(size);
+  size_t size=sizeof(float)*count;  hipHostAlloc((void**)ptr,size,hipHostMallocDefault);  return(size);
 }
 
 //==============================================================================
 /// Allocates pinned memory for tfloat4 on CPU.
 //==============================================================================
 size_t HostAlloc(tfloat4 **ptr,unsigned count){
-  size_t size=sizeof(tfloat4)*count;  cudaHostAlloc((void**)ptr,size,cudaHostAllocDefault);  return(size);
+  size_t size=sizeof(tfloat4)*count;  hipHostAlloc((void**)ptr,size,hipHostMallocDefault);  return(size);
 }
 
 //==============================================================================
 /// Allocates pinned memory for double on CPU.
 //==============================================================================
 size_t HostAlloc(double **ptr,unsigned count){
-  size_t size=sizeof(double)*count;  cudaHostAlloc((void**)ptr,size,cudaHostAllocDefault);  return(size);
+  size_t size=sizeof(double)*count;  hipHostAlloc((void**)ptr,size,hipHostMallocDefault);  return(size);
 }
 
 //==============================================================================
 /// Allocates pinned memory for tdouble2 on CPU.
 //==============================================================================
 size_t HostAlloc(tdouble2 **ptr,unsigned count){
-  size_t size=sizeof(tdouble2)*count;  cudaHostAlloc((void**)ptr,size,cudaHostAllocDefault);  return(size);
+  size_t size=sizeof(tdouble2)*count;  hipHostAlloc((void**)ptr,size,hipHostMallocDefault);  return(size);
 }
 
 
@@ -420,8 +420,8 @@ byte* ToHostByte(unsigned pini,unsigned n,const byte *vg){
   Check_CudaErroorFun("At the beginning.");
   try{
     byte *v=new byte[n];
-    cudaMemcpy(v,vg+pini,sizeof(byte)*n,cudaMemcpyDeviceToHost);
-    Check_CudaErroorFun("After cudaMemcpy().");
+    hipMemcpy(v,vg+pini,sizeof(byte)*n,hipMemcpyDeviceToHost);
+    Check_CudaErroorFun("After hipMemcpy().");
     return(v);
   }
   catch(const std::bad_alloc){
@@ -437,8 +437,8 @@ word* ToHostWord(unsigned pini,unsigned n,const word *vg){
   Check_CudaErroorFun("At the beginning.");
   try{
     word *v=new word[n];
-    cudaMemcpy(v,vg+pini,sizeof(word)*n,cudaMemcpyDeviceToHost);
-    Check_CudaErroorFun("After cudaMemcpy().");
+    hipMemcpy(v,vg+pini,sizeof(word)*n,hipMemcpyDeviceToHost);
+    Check_CudaErroorFun("After hipMemcpy().");
     return(v);
   }
   catch(const std::bad_alloc){
@@ -454,8 +454,8 @@ ushort4* ToHostWord4(unsigned pini,unsigned n,const ushort4 *vg){
   Check_CudaErroorFun("At the beginning.");
   try{
     ushort4 *v=new ushort4[n];
-    cudaMemcpy(v,vg+pini,sizeof(ushort4)*n,cudaMemcpyDeviceToHost);
-    Check_CudaErroorFun("After cudaMemcpy().");
+    hipMemcpy(v,vg+pini,sizeof(ushort4)*n,hipMemcpyDeviceToHost);
+    Check_CudaErroorFun("After hipMemcpy().");
     return(v);
   }
   catch(const std::bad_alloc){
@@ -471,8 +471,8 @@ int* ToHostInt(unsigned pini,unsigned n,const int *vg){
   Check_CudaErroorFun("At the beginning.");
   try{
     int *v=new int[n];
-    cudaMemcpy(v,vg+pini,sizeof(int)*n,cudaMemcpyDeviceToHost);
-    Check_CudaErroorFun("After cudaMemcpy().");
+    hipMemcpy(v,vg+pini,sizeof(int)*n,hipMemcpyDeviceToHost);
+    Check_CudaErroorFun("After hipMemcpy().");
     return(v);
   }
   catch(const std::bad_alloc){
@@ -488,8 +488,8 @@ unsigned* ToHostUint(unsigned pini,unsigned n,const unsigned *vg){
   Check_CudaErroorFun("At the beginning.");
   try{
     unsigned *v=new unsigned[n];
-    cudaMemcpy(v,vg+pini,sizeof(unsigned)*n,cudaMemcpyDeviceToHost);
-    Check_CudaErroorFun("After cudaMemcpy().");
+    hipMemcpy(v,vg+pini,sizeof(unsigned)*n,hipMemcpyDeviceToHost);
+    Check_CudaErroorFun("After hipMemcpy().");
     return(v);
   }
   catch(const std::bad_alloc){
@@ -505,8 +505,8 @@ tint2* ToHostInt2(unsigned pini,unsigned n,const int2 *vg){
   Check_CudaErroorFun("At the beginning.");
   try{
     tint2 *v=new tint2[n];
-    cudaMemcpy(v,vg+pini,sizeof(tint2)*n,cudaMemcpyDeviceToHost);
-    Check_CudaErroorFun("After cudaMemcpy().");
+    hipMemcpy(v,vg+pini,sizeof(tint2)*n,hipMemcpyDeviceToHost);
+    Check_CudaErroorFun("After hipMemcpy().");
     return(v);
   }
   catch(const std::bad_alloc){
@@ -522,8 +522,8 @@ tint3* ToHostInt3(unsigned pini,unsigned n,const int3 *vg){
   Check_CudaErroorFun("At the beginning.");
   try{
     tint3 *v=new tint3[n];
-    cudaMemcpy(v,vg+pini,sizeof(tint3)*n,cudaMemcpyDeviceToHost);
-    Check_CudaErroorFun("After cudaMemcpy().");
+    hipMemcpy(v,vg+pini,sizeof(tint3)*n,hipMemcpyDeviceToHost);
+    Check_CudaErroorFun("After hipMemcpy().");
     return(v);
   }
   catch(const std::bad_alloc){
@@ -539,8 +539,8 @@ float* ToHostFloat(unsigned pini,unsigned n,const float *vg){
   Check_CudaErroorFun("At the beginning.");
   try{
     float *v=new float[n];
-    cudaMemcpy(v,vg+pini,sizeof(float)*n,cudaMemcpyDeviceToHost);
-    Check_CudaErroorFun("After cudaMemcpy().");
+    hipMemcpy(v,vg+pini,sizeof(float)*n,hipMemcpyDeviceToHost);
+    Check_CudaErroorFun("After hipMemcpy().");
     return(v);
   }
   catch(const std::bad_alloc){
@@ -556,8 +556,8 @@ tfloat3* ToHostFloat3(unsigned pini,unsigned n,const float3 *vg){
   Check_CudaErroorFun("At the beginning.");
   try{
     tfloat3 *v=new tfloat3[n];
-    cudaMemcpy(v,vg+pini,sizeof(tfloat3)*n,cudaMemcpyDeviceToHost);
-    Check_CudaErroorFun("After cudaMemcpy().");
+    hipMemcpy(v,vg+pini,sizeof(tfloat3)*n,hipMemcpyDeviceToHost);
+    Check_CudaErroorFun("After hipMemcpy().");
     return(v);
   }
   catch(const std::bad_alloc){
@@ -573,8 +573,8 @@ tfloat4* ToHostFloat4(unsigned pini,unsigned n,const float4 *vg){
   Check_CudaErroorFun("At the beginning.");
   try{
     tfloat4 *v=new tfloat4[n];
-    cudaMemcpy(v,vg+pini,sizeof(tfloat4)*n,cudaMemcpyDeviceToHost);
-    Check_CudaErroorFun("After cudaMemcpy().");
+    hipMemcpy(v,vg+pini,sizeof(tfloat4)*n,hipMemcpyDeviceToHost);
+    Check_CudaErroorFun("After hipMemcpy().");
     return(v);
   }
   catch(const std::bad_alloc){
@@ -590,8 +590,8 @@ double* ToHostDouble(unsigned pini,unsigned n,const double *vg){
   Check_CudaErroorFun("At the beginning.");
   try{
     double *v=new double[n];
-    cudaMemcpy(v,vg+pini,sizeof(double)*n,cudaMemcpyDeviceToHost);
-    Check_CudaErroorFun("After cudaMemcpy().");
+    hipMemcpy(v,vg+pini,sizeof(double)*n,hipMemcpyDeviceToHost);
+    Check_CudaErroorFun("After hipMemcpy().");
     return(v);
   }
   catch(const std::bad_alloc){
@@ -607,8 +607,8 @@ tdouble2* ToHostDouble2(unsigned pini,unsigned n,const double2 *vg){
   Check_CudaErroorFun("At the beginning.");
   try{
     tdouble2 *v=new tdouble2[n];
-    cudaMemcpy(v,vg+pini,sizeof(tdouble2)*n,cudaMemcpyDeviceToHost);
-    Check_CudaErroorFun("After cudaMemcpy().");
+    hipMemcpy(v,vg+pini,sizeof(tdouble2)*n,hipMemcpyDeviceToHost);
+    Check_CudaErroorFun("After hipMemcpy().");
     return(v);
   }
   catch(const std::bad_alloc){

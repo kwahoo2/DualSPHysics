@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSTOOLS
 /* 
  <DualSPHysics codes>  Copyright (c) 2020 by Dr. Jose M. Dominguez
@@ -97,7 +98,7 @@ void SetFluidVelUniform(unsigned n,unsigned pini
 {
   if(n){
     const dim3 sgrid=GetSimpleGridSize(n,WAVEBSIZE);
-    KerSetFluidVelUniform<<<sgrid,WAVEBSIZE>>> (n,pini,Float3(vt),Float4(cenpla)
+    hipLaunchKernelGGL(KerSetFluidVelUniform, sgrid, WAVEBSIZE, 0, 0, n,pini,Float3(vt),Float4(cenpla)
       ,Float4(dompla1),Float4(dompla2),Float4(dompla3),domsize1,domsize2,domsize3
       ,widthhalf,coeff,falpha,fbeta,fsub,fdiv,fluidbeginidp,posxy,posz,idp,velrhop);
   }
@@ -190,12 +191,12 @@ void SetFluidVel(unsigned n,unsigned pini,bool order2,bool subdrift
   if(n){
     const dim3 sgrid=GetSimpleGridSize(n,WAVEBSIZE);
     if(!subdrift){ const bool sdrift=false;
-      if(!order2)KerSetFluidVel<false,sdrift> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,kl,sinhkld,wpf,cta,depth,framp,ct2,sinhkld4,ctd,ctd2,fluidbeginidp,posxy,posz,idp,velrhop);
-      else       KerSetFluidVel<true ,sdrift> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,kl,sinhkld,wpf,cta,depth,framp,ct2,sinhkld4,ctd,ctd2,fluidbeginidp,posxy,posz,idp,velrhop);
+      if(!order2)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVel<false,sdrift>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,kl,sinhkld,wpf,cta,depth,framp,ct2,sinhkld4,ctd,ctd2,fluidbeginidp,posxy,posz,idp,velrhop);
+      else       hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVel<true ,sdrift>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,kl,sinhkld,wpf,cta,depth,framp,ct2,sinhkld4,ctd,ctd2,fluidbeginidp,posxy,posz,idp,velrhop);
     }
     else{          const bool sdrift=true;
-      if(!order2)KerSetFluidVel<false,sdrift> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,kl,sinhkld,wpf,cta,depth,framp,ct2,sinhkld4,ctd,ctd2,fluidbeginidp,posxy,posz,idp,velrhop);
-      else       KerSetFluidVel<true ,sdrift> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,kl,sinhkld,wpf,cta,depth,framp,ct2,sinhkld4,ctd,ctd2,fluidbeginidp,posxy,posz,idp,velrhop);
+      if(!order2)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVel<false,sdrift>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,kl,sinhkld,wpf,cta,depth,framp,ct2,sinhkld4,ctd,ctd2,fluidbeginidp,posxy,posz,idp,velrhop);
+      else       hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVel<true ,sdrift>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,kl,sinhkld,wpf,cta,depth,framp,ct2,sinhkld4,ctd,ctd2,fluidbeginidp,posxy,posz,idp,velrhop);
     }
   }
 }
@@ -298,10 +299,10 @@ void SetFluidVelSpectrumSub(unsigned n,unsigned pini
 {
   if(n){
     const dim3 sgrid=GetSimpleGridSize(n,WAVEBSIZE);
-    if(!subdrift)KerSetFluidVelSpectrumSub<0> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,depth,framp,wavecount,wavekl,waveamp,wavefang,wavephase,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2);
+    if(!subdrift)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVelSpectrumSub<0>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,depth,framp,wavecount,wavekl,waveamp,wavefang,wavephase,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2);
     else{
-      if(!fun)KerSetFluidVelSpectrumSub<1> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,depth,framp,wavecount,wavekl,waveamp,wavefang,wavephase,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2);
-      else    KerSetFluidVelSpectrumSub<2> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,depth,framp,wavecount,wavekl,waveamp,wavefang,wavephase,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2);
+      if(!fun)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVelSpectrumSub<1>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,depth,framp,wavecount,wavekl,waveamp,wavefang,wavephase,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2);
+      else    hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVelSpectrumSub<2>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,timewave,swl,depth,framp,wavecount,wavekl,waveamp,wavefang,wavephase,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2);
     }
   }
 }
@@ -424,16 +425,16 @@ void SetFluidVelExternal(unsigned n,unsigned pini
   if(n){
     const dim3 sgrid=GetSimpleGridSize(n,WAVEBSIZE);
     if(!subdrift){ const byte tdrift=0;
-      if(!coeffz || !velz)KerSetFluidVelExternal<false,tdrift> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,pxmin,pymin,pzmin,dpx,dpy,dpz,npx1,npy1,npz1,velx,velz,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2,bottom);
-      else                KerSetFluidVelExternal<true ,tdrift> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,pxmin,pymin,pzmin,dpx,dpy,dpz,npx1,npy1,npz1,velx,velz,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2,bottom);
+      if(!coeffz || !velz)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVelExternal<false,tdrift>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,pxmin,pymin,pzmin,dpx,dpy,dpz,npx1,npy1,npz1,velx,velz,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2,bottom);
+      else                hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVelExternal<true ,tdrift>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,pxmin,pymin,pzmin,dpx,dpy,dpz,npx1,npy1,npz1,velx,velz,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2,bottom);
     }
     else if(!fun){ const byte tdrift=1;
-      if(!coeffz || !velz)KerSetFluidVelExternal<false,tdrift> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,pxmin,pymin,pzmin,dpx,dpy,dpz,npx1,npy1,npz1,velx,velz,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2,bottom);
-      else                KerSetFluidVelExternal<true ,tdrift> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,pxmin,pymin,pzmin,dpx,dpy,dpz,npx1,npy1,npz1,velx,velz,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2,bottom);
+      if(!coeffz || !velz)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVelExternal<false,tdrift>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,pxmin,pymin,pzmin,dpx,dpy,dpz,npx1,npy1,npz1,velx,velz,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2,bottom);
+      else                hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVelExternal<true ,tdrift>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,pxmin,pymin,pzmin,dpx,dpy,dpz,npx1,npy1,npz1,velx,velz,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2,bottom);
     }
     else{          const byte tdrift=2;
-      if(!coeffz || !velz)KerSetFluidVelExternal<false,tdrift> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,pxmin,pymin,pzmin,dpx,dpy,dpz,npx1,npy1,npz1,velx,velz,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2,bottom);
-      else                KerSetFluidVelExternal<true ,tdrift> <<<sgrid,WAVEBSIZE>>> (n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,pxmin,pymin,pzmin,dpx,dpy,dpz,npx1,npy1,npz1,velx,velz,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2,bottom);
+      if(!coeffz || !velz)hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVelExternal<false,tdrift>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,pxmin,pymin,pzmin,dpx,dpy,dpz,npx1,npy1,npz1,velx,velz,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2,bottom);
+      else                hipLaunchKernelGGL(HIP_KERNEL_NAME(KerSetFluidVelExternal<true ,tdrift>), sgrid, WAVEBSIZE, 0, 0, n,pini,centerx,widthhalf,coeffx,coeffz,falpha,fbeta,fsub,fdiv,pxmin,pymin,pzmin,dpx,dpy,dpz,npx1,npy1,npz1,velx,velz,fluidbeginidp,posxy,posz,idp,velrhop,fun,ctd,ctd2,ctd_2,ctd2_2,bottom);
     }
   }
 }
@@ -495,12 +496,12 @@ unsigned ComputeDrift(unsigned n,unsigned pini,double xmin,double xmax
     //-Allocates memory on GPU.
     unsigned *res=NULL;
     size_t size=sizeof(unsigned)*(nblocks+curedus::GetAuxSize_ReduSumUint(nblocks));
-    cudaMalloc((void**)&res,size);
+    hipMalloc((void**)&res,size);
     //-Compute drift.
-    KerComputeDrift<WAVEBSIZE><<<sgrid,WAVEBSIZE,smemSize>>>(n,pini,xmin,xmax,posxy,code,res);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(KerComputeDrift<WAVEBSIZE>), sgrid, WAVEBSIZE, smemSize, 0, n,pini,xmin,xmax,posxy,code,res);
     ret=curedus::ReduSumUint(nblocks,0,res,res+nblocks);
     //-Frees memory on GPU.
-    cudaFree(res);
+    hipFree(res);
   }
   return(ret);
 }

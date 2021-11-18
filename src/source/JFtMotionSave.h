@@ -35,7 +35,7 @@
 #include "JPartMotionDef.h"
 
 #ifdef _WITHGPU
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 #endif
 
 class JLog2;

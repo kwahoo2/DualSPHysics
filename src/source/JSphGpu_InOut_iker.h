@@ -23,7 +23,7 @@
 
 #include "DualSphDef.h"
 #include "JCellDivDataGpu.h"
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #define INOUT_RefillAdvanced_MASK 0x01
 #define INOUT_RefillSpFull_MASK 0x02

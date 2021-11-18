@@ -178,12 +178,12 @@ void JSphInOutGridData::AllocateMemoryGpu(){
 /// Free GPU memory for data.
 //==============================================================================
 void JSphInOutGridData::FreeMemoryGpu(){
-  if(Velx0g)  cudaFree(Velx0g);    Velx0g  =NULL;
-  if(Velx1g)  cudaFree(Velx1g);    Velx1g  =NULL;
-  if(SelVelxg)cudaFree(SelVelxg);  SelVelxg=NULL;
-  if(Velz0g)  cudaFree(Velz0g);    Velz0g  =NULL;
-  if(Velz1g)  cudaFree(Velz1g);    Velz1g  =NULL;
-  if(SelVelzg)cudaFree(SelVelzg);  SelVelzg=NULL;
+  if(Velx0g)  hipFree(Velx0g);    Velx0g  =NULL;
+  if(Velx1g)  hipFree(Velx1g);    Velx1g  =NULL;
+  if(SelVelxg)hipFree(SelVelxg);  SelVelxg=NULL;
+  if(Velz0g)  hipFree(Velz0g);    Velz0g  =NULL;
+  if(Velz1g)  hipFree(Velz1g);    Velz1g  =NULL;
+  if(SelVelzg)hipFree(SelVelzg);  SelVelzg=NULL;
 }
 #endif
 
@@ -455,22 +455,22 @@ void JSphInOutGridData::ComputeTimeGpu(double t){
     //-Updata data for time t0.
     if(CtVel0!=SelCt){
       CtVel0=SelCt;
-      cudaMemcpy(Velx0g,DataTimes[SelCt]->GetVelx(),sizeof(float)*Npt,cudaMemcpyHostToDevice);
-      if(UseVelz)cudaMemcpy(Velz0g,DataTimes[SelCt]->GetVelz(),sizeof(float)*Npt,cudaMemcpyHostToDevice);
+      hipMemcpy(Velx0g,DataTimes[SelCt]->GetVelx(),sizeof(float)*Npt,hipMemcpyHostToDevice);
+      if(UseVelz)hipMemcpy(Velz0g,DataTimes[SelCt]->GetVelz(),sizeof(float)*Npt,hipMemcpyHostToDevice);
     }
     //-Updata data for time t1.
     unsigned selct1=(SelCt+1<nt? SelCt+1: SelCt);
     if(CtVel1!=selct1){
       CtVel1=selct1;
-      cudaMemcpy(Velx1g,DataTimes[selct1]->GetVelx(),sizeof(float)*Npt,cudaMemcpyHostToDevice);
-      if(UseVelz)cudaMemcpy(Velz1g,DataTimes[selct1]->GetVelz(),sizeof(float)*Npt,cudaMemcpyHostToDevice);
+      hipMemcpy(Velx1g,DataTimes[selct1]->GetVelx(),sizeof(float)*Npt,hipMemcpyHostToDevice);
+      if(UseVelz)hipMemcpy(Velz1g,DataTimes[selct1]->GetVelz(),sizeof(float)*Npt,hipMemcpyHostToDevice);
     }
     //-Updata data for the requested time (t).
     if(t<=seltime || (t>=seltime && SelCt+1>=nt)){//-Copy data from DataTimes[SelCt].
       if(CtSelVel!=SelCt){
         CtSelVel=SelCt;
-        cudaMemcpy(SelVelxg,Velx0g,sizeof(float)*Npt,cudaMemcpyDeviceToDevice);
-        if(UseVelz)cudaMemcpy(SelVelzg,Velz0g,sizeof(float)*Npt,cudaMemcpyDeviceToDevice);
+        hipMemcpy(SelVelxg,Velx0g,sizeof(float)*Npt,hipMemcpyDeviceToDevice);
+        if(UseVelz)hipMemcpy(SelVelzg,Velz0g,sizeof(float)*Npt,hipMemcpyDeviceToDevice);
       }
     }
     else{ //-Interpolate data between DataTimes[SelCt] and DataTimes[SelCt+1].

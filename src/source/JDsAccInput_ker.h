@@ -29,7 +29,7 @@
 #define _JDsAccInput_ker_
 
 #include "DualSphDef.h"
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 /// Implements a set of functions and CUDA kernels for external forces (JDsAccInput) on GPU.
 namespace cuaccin{
@@ -38,7 +38,7 @@ namespace cuaccin{
 void AddAccInput(unsigned n,unsigned pini,typecode codesel1,typecode codesel2
   ,tdouble3 acclin,tdouble3 accang,tdouble3 centre,tdouble3 velang,tdouble3 vellin,bool setgravity
   ,tfloat3 gravity,const typecode *code,const double2 *posxy,const double *posz
-  ,const float4 *velrhop,float3 *ace,cudaStream_t stm);
+  ,const float4 *velrhop,float3 *ace,hipStream_t stm);
 
 }
 

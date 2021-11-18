@@ -74,7 +74,7 @@ void JGaugeSystem::Reset(){
   for(unsigned c=0;c<Gauges.size();c++)delete Gauges[c];
   Gauges.clear();
  #ifdef _WITHGPU
-  if(AuxMemoryg)cudaFree(AuxMemoryg); AuxMemoryg=NULL;
+  if(AuxMemoryg)hipFree(AuxMemoryg); AuxMemoryg=NULL;
  #endif
 }
 

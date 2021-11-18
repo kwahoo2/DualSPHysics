@@ -76,8 +76,8 @@ void JFtMotionSave::Reset(){
   delete[] PosRef; PosRef=NULL;
 #ifdef _WITHGPU
   //-Free GPU memory.
-  if(IdpRefg)cudaFree(IdpRefg); IdpRefg=NULL;
-  if(PosRefg)cudaFree(PosRefg); PosRefg=NULL;
+  if(IdpRefg)hipFree(IdpRefg); IdpRefg=NULL;
+  if(PosRefg)hipFree(PosRefg); PosRefg=NULL;
 #endif
 }
 
@@ -202,13 +202,13 @@ void JFtMotionSave::SaveFtDataGpu(double timestep,unsigned nstep,const StFloatin
 {
   //-Allocates GPU memory when it is necessary (first time).
   if(IdpRefg==NULL){
-    cudaMalloc((void**)&IdpRefg,sizeof(unsigned)*FtCount*3);
-    cudaMalloc((void**)&PosRefg,sizeof(double)  *FtCount*9);
-    cudaMemcpy(IdpRefg,IdpRef,sizeof(unsigned)*FtCount*3,cudaMemcpyHostToDevice);
+    hipMalloc((void**)&IdpRefg,sizeof(unsigned)*FtCount*3);
+    hipMalloc((void**)&PosRefg,sizeof(double)  *FtCount*9);
+    hipMemcpy(IdpRefg,IdpRef,sizeof(unsigned)*FtCount*3,hipMemcpyHostToDevice);
   }
   //-Gets position data.
   cusph::FtGetPosRef(FtCount*3,IdpRefg,ftridpg,posxyg,poszg,PosRefg);
-  cudaMemcpy(PosRef,PosRefg,sizeof(double)*FtCount*9,cudaMemcpyDeviceToHost);
+  hipMemcpy(PosRef,PosRefg,sizeof(double)*FtCount*9,hipMemcpyDeviceToHost);
   //-Saves data.
   SaveFtData(timestep,nstep,ftobjs);
 }

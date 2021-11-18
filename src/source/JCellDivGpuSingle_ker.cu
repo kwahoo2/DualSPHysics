@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -90,7 +91,7 @@ void PreSortFull(unsigned np,unsigned cellcode,const unsigned *dcell,const typec
     const uint3 cellzero=make_uint3(cellmin.x,cellmin.y,cellmin.z);
     const uint3 xncells=make_uint3(ncells.x,ncells.y,ncells.z);
     dim3 sgrid=GetSimpleGridSize(np,DIVBSIZE);
-    KerPreSortFull <<<sgrid,DIVBSIZE>>> (np,cellcode,dcell,code,cellzero,xncells,cellpart,sortpart);
+    hipLaunchKernelGGL(KerPreSortFull, sgrid, DIVBSIZE, 0, 0, np,cellcode,dcell,code,cellzero,xncells,cellpart,sortpart);
   }
 }
 
@@ -153,7 +154,7 @@ void PreSortFluid(unsigned npf,unsigned pini,unsigned cellcode,const unsigned *d
     const uint3 cellzero=make_uint3(cellmin.x,cellmin.y,cellmin.z);
     const uint3 xncells=make_uint3(ncells.x,ncells.y,ncells.z);
     dim3 sgrid=GetSimpleGridSize(npf,DIVBSIZE);
-    KerPreSortFluid <<<sgrid,DIVBSIZE>>> (npf,pini,cellcode,dcell,code,cellzero,xncells,cellpart,sortpart);
+    hipLaunchKernelGGL(KerPreSortFluid, sgrid, DIVBSIZE, 0, 0, npf,pini,cellcode,dcell,code,cellzero,xncells,cellpart,sortpart);
   }
 }
 

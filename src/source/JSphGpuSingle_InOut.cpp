@@ -70,7 +70,7 @@ void JSphGpuSingle::InOutCheckProximity(unsigned newnp){
     //-Check proximity on CPU.
     InOut->InitCheckProximity(Np,newnp,Scell,AuxPos,Idp,Code);
     //-Uploads updated code of particles to the GPU.
-    cudaMemcpy(Codeg,Code,sizeof(typecode)*Np,cudaMemcpyHostToDevice);
+    hipMemcpy(Codeg,Code,sizeof(typecode)*Np,hipMemcpyHostToDevice);
   }
 }
 
@@ -111,17 +111,17 @@ void JSphGpuSingle::InOutInit(double timestepini){
     Posz [p]=AuxPos[p].z;
   }
   //-Copy data to GPU memory.
-  cudaMemcpy(Idpg    +Np,Idp    ,sizeof(unsigned)*newnp,cudaMemcpyHostToDevice);
-  cudaMemcpy(Codeg   +Np,Code   ,sizeof(typecode)*newnp,cudaMemcpyHostToDevice);
-  cudaMemcpy(Posxyg  +Np,Posxy  ,sizeof(double2) *newnp,cudaMemcpyHostToDevice);
-  cudaMemcpy(Poszg   +Np,Posz   ,sizeof(double)  *newnp,cudaMemcpyHostToDevice);
-  cudaMemcpy(Velrhopg+Np,Velrhop,sizeof(float4)  *newnp,cudaMemcpyHostToDevice);
+  hipMemcpy(Idpg    +Np,Idp    ,sizeof(unsigned)*newnp,hipMemcpyHostToDevice);
+  hipMemcpy(Codeg   +Np,Code   ,sizeof(typecode)*newnp,hipMemcpyHostToDevice);
+  hipMemcpy(Posxyg  +Np,Posxy  ,sizeof(double2) *newnp,hipMemcpyHostToDevice);
+  hipMemcpy(Poszg   +Np,Posz   ,sizeof(double)  *newnp,hipMemcpyHostToDevice);
+  hipMemcpy(Velrhopg+Np,Velrhop,sizeof(float4)  *newnp,hipMemcpyHostToDevice);
 
   //-Checks position of new particles and calculates cell.
   cusphinout::UpdatePosFluid(PeriActive,newnp,Np,Posxyg,Poszg,Dcellg,Codeg);
 
   //-Updates new particle values for Laminar+SPS.
-  if(SpsTaug)cudaMemset(SpsTaug+Np,0,sizeof(tsymatrix3f)*newnp);
+  if(SpsTaug)hipMemset(SpsTaug+Np,0,sizeof(tsymatrix3f)*newnp);
   if(DBG_INOUT_PARTINIT)DgSaveVtkParticlesGpu("CfgInOut_InletIni.vtk",0,Np,Np+newnp,Posxyg,Poszg,Codeg,Idpg,Velrhopg);
 
   //-Updates number of particles.
@@ -217,7 +217,7 @@ void JSphGpuSingle::InOutComputeStep(double stepdt){
   }
 
   //-Updates new particle values for Laminar+SPS.
-  if(SpsTaug)cudaMemset(SpsTaug+Np,0,sizeof(tsymatrix3f)*newnp);
+  if(SpsTaug)hipMemset(SpsTaug+Np,0,sizeof(tsymatrix3f)*newnp);
 
   //-Updates number of particles.
   if(newnp){
