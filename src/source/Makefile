@@ -1,4 +1,5 @@
 #DualSPHysics GPU/CPU v5.0.164 21-11-2020
+#Makefile for HIP/ROCm
 
 #=============== Compilation Options (YES/NO) ===============
 USE_GCC5=YES
@@ -30,13 +31,11 @@ else
     CCFLAGS+= -march=native
   endif
 endif
-#CC=g++
-CC=hipcc
+CC=g++
 CCLINKFLAGS=-fopenmp -lgomp
 
-#for use HIP with standart compiler hipconfig --cxx_config
-#CCFLAGS += $(shell $(HIP_PATH)/bin/hipconfig --cpp_config)
-#CCFLAGS +=-D__HIP_PLATFORM_HCC__= -D__HIP_PLATFORM_AMD__= -I/opt/rocm-4.5.0/hip/include -I/opt/rocm-4.5.0/llvm/bin/../lib/clang/13.0.0 -I/opt/rocm-4.5.0/hsa/include
+#use to find paths: hipconfig --cxx_config
+CCFLAGS +=-D__HIP_PLATFORM_HCC__= -D__HIP_PLATFORM_AMD__= -I/opt/rocm-4.5.0/hip/include -I/opt/rocm-4.5.0/llvm/bin/../lib/clang/13.0.0 -I/opt/rocm-4.5.0/hsa/include
 
 #Required for GCC versions >=5.0
 ifeq ($(USE_GCC5), YES)
@@ -135,7 +134,7 @@ else
 endif
 
 $(EXECS_DIRECTORY)/$(EXECNAME):  $(OBJECTS)
-	$(CC) $(OBJECTS) $(CCLINKFLAGS) -o $@ $(JLIBS)
+	$(NCC) $(OBJECTS) $(CCLINKFLAGS) -o $@ $(JLIBS)
 
 .cpp.o: 
 	$(CC) $(CCFLAGS) $< 
