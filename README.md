@@ -58,6 +58,7 @@ You can build the project in GNU/Linux using the [Makefile](src/source/Makefile)
 5. Execute `make`
 
 Note: Some Linux distributions have ROCm/HIP prepackaged. Eg. for Fedora:
+
 `sudo dnf install rocm-core-devel rocm-hip-devel rocprim-devel`
 
 After compiling you should see a message like `--- Compiled Release GPU/CPU version ---`. Go to `bin/linux/` to check that `DualSPHyiscs5.2_linux64` or `DualSPHyiscs5.2CPU_linux64` is there and build correctly.
