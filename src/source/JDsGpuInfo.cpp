@@ -74,7 +74,7 @@ int JDsGpuInfo::ShowGpusInfo(JLog2 *log){
 int JDsGpuInfo::GetNgpus(){
   if(Ngpus<0){
     int deviceCount=0;
-    cudaGetDeviceCount(&deviceCount);
+    hipGetDeviceCount(&deviceCount);
     Ngpus=deviceCount;
   }
   return(Ngpus);
@@ -89,15 +89,15 @@ int JDsGpuInfo::SelectGpu(int gpuid){
     AutoSelect=(gpuid<0);
     if(AutoSelect){
       unsigned *ptr=NULL;
-      cudaMalloc((void**)&ptr,sizeof(unsigned)*100);
-      cudaFree(ptr);
+      hipMalloc((void**)&ptr,sizeof(unsigned)*100);
+      hipFree(ptr);
     }
-    else cudaSetDevice(gpuid);
+    else hipSetDevice(gpuid);
     //-Get information on GPU selection.
-    cudaDeviceProp devp;
+    hipDeviceProp_t devp;
     int dev;
-    cudaGetDevice(&dev);
-    cudaGetDeviceProperties(&devp,dev);
+    hipGetDevice(&dev);
+    hipGetDeviceProperties(&devp,dev);
     GpuId=dev;
     if(!AutoSelect && gpuid!=GpuId)Run_Exceptioon("Requested GPU is not available.");
     Name=devp.name;

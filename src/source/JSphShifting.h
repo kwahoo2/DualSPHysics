@@ -36,7 +36,7 @@
 #include "DualSphDef.h"
 #include "JMatrix4.h"
 #ifdef _WITHGPU
-  #include <cuda_runtime_api.h>
+  #include <hip/hip_runtime_api.h>
 #endif
 
 #include <string>
@@ -152,8 +152,8 @@ public:
   void RunCpu(unsigned n,unsigned pini,double dt,const tfloat4* velrhop,tfloat4* shiftposfs)const;
 
 #ifdef _WITHGPU
-  void InitGpu(unsigned n,unsigned pini,const double2* posxy,const double* posz,float4* shiftposfs,cudaStream_t stm=NULL)const;
-  void RunGpu(unsigned n,unsigned pini,double dt,const float4* velrhop,float4* shiftposfs,cudaStream_t stm=NULL)const;
+  void InitGpu(unsigned n,unsigned pini,const double2* posxy,const double* posz,float4* shiftposfs,hipStream_t stm=NULL)const;
+  void RunGpu(unsigned n,unsigned pini,double dt,const float4* velrhop,float4* shiftposfs,hipStream_t stm=NULL)const;
 #endif
 
 };

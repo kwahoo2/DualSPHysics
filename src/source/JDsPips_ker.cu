@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -20,7 +21,7 @@
 
 #include "JDsPips_ker.h"
 #include <cfloat>
-#include <math_constants.h>
+#include "math_constants.h"
 
 namespace cupips{
 #include "FunctionsBasic_iker.h"
@@ -119,7 +120,7 @@ template <unsigned blockSize> __global__ void KerInteractionNg
 //==============================================================================
 void InteractionNg_1st(unsigned nb,unsigned pinitb,unsigned nf,unsigned pinitf
   ,const StDivDataGpu &dvd,const unsigned *dcell,const float4 *poscell,uint4 *res
-  ,cudaStream_t stm)
+  ,hipStream_t stm)
 {
   const unsigned BSIZE=256;
   const unsigned np=nb+nf;
@@ -176,7 +177,7 @@ template <unsigned blockSize> __global__ void KerReduSumUint4(unsigned n,unsigne
 //==============================================================================
 /// Count number of real and checked neighbours in particle interacion.
 //==============================================================================
-void InteractionNg_2nd(unsigned n,const uint4 *data,uint4 *res,cudaStream_t stm)
+void InteractionNg_2nd(unsigned n,const uint4 *data,uint4 *res,hipStream_t stm)
 {
   if(n){
     const unsigned BSIZE=256;
@@ -253,7 +254,7 @@ template <unsigned blockSize> __global__ void KerReduSumUintlong4(unsigned n,uns
 //==============================================================================
 /// Count number of real and checked neighbours in particle interacion.
 //==============================================================================
-void InteractionNg_3th(unsigned n,const uint4 *data,ullong *res,cudaStream_t stm)
+void InteractionNg_3th(unsigned n,const uint4 *data,ullong *res,hipStream_t stm)
 {
   if(n){
     const unsigned BSIZE=256;

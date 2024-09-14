@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -257,8 +258,8 @@ void ReduPosLimits(unsigned nblocks,float *aux,tfloat3 &pmin,tfloat3 &pmax){
     float* x=dat; dat=res; res=x;
   }
   float resf[6];
-  cudaMemcpy(resf,dat,sizeof(float)*6,cudaMemcpyDeviceToHost);
-  //fcuda::Check_CudaError("#>ReduMaxF Fallo en cudaMemcpy.");
+  hipMemcpy(resf,dat,sizeof(float)*6,hipMemcpyDeviceToHost);
+  //fcuda::Check_CudaError("#>ReduMaxF Fallo en hipMemcpy.");
   pmin=TFloat3(resf[0],resf[1],resf[2]);
   pmax=TFloat3(resf[3],resf[4],resf[5]);
 }
@@ -397,8 +398,8 @@ void LimitsCellRedu(unsigned cellcode,unsigned nblocks,unsigned *aux
     unsigned* x=dat; dat=res; res=x;
   }
   unsigned resf[6];
-  cudaMemcpy(resf,dat,sizeof(unsigned)*2,cudaMemcpyDeviceToHost);
-  //fcuda::Check_CudaError("#>ReduMaxF Fallo en cudaMemcpy.");
+  hipMemcpy(resf,dat,sizeof(unsigned)*2,hipMemcpyDeviceToHost);
+  //fcuda::Check_CudaError("#>ReduMaxF Fallo en hipMemcpy.");
   celmin=TUint3(DCEL_Cellx(cellcode,resf[0]),DCEL_Celly(cellcode,resf[0]),DCEL_Cellz(cellcode,resf[0]));
   celmax=TUint3(DCEL_Cellx(cellcode,resf[1]),DCEL_Celly(cellcode,resf[1]),DCEL_Cellz(cellcode,resf[1]));
 }
@@ -484,8 +485,8 @@ void LimitsCell(unsigned np,unsigned pini,unsigned cellcode,const unsigned *dcel
   sprintf(cad,"LimitsPos_%s> n:%u  pini:%u",(velrhop? "Fluid": "Bound"),np,pini); log->Print(cad);
   float4 *poscellh=new float4[np];
   byte *checkh=new byte[np];
-  cudaMemcpy(poscellh,poscell+pini,sizeof(float4)*np,cudaMemcpyDeviceToHost);
-  cudaMemcpy(checkh,check+pini,sizeof(byte)*np,cudaMemcpyDeviceToHost);
+  hipMemcpy(poscellh,poscell+pini,sizeof(float4)*np,hipMemcpyDeviceToHost);
+  hipMemcpy(checkh,check+pini,sizeof(byte)*np,hipMemcpyDeviceToHost);
   tuint3 pminh=TUint3(UINT_MAX);
   tuint3 pmaxh=TUint3(0);
   for(unsigned p=0;p<np;p++)if(!checkh[p]){
@@ -535,8 +536,8 @@ __global__ void KerCalcBeginEndCell(unsigned n,unsigned pini,const unsigned *cel
 /// Calcula particula inicial y final de cada celda.
 //==============================================================================
 void CalcBeginEndCell(bool full,unsigned np,unsigned npb,unsigned sizebegcell,unsigned cellfluid,const unsigned *cellpart,int2 *begcell){
-  if(full)cudaMemset(begcell,0,sizeof(int2)*sizebegcell);
-  else cudaMemset(begcell+cellfluid,0,sizeof(int2)*(sizebegcell-cellfluid));
+  if(full)hipMemset(begcell,0,sizeof(int2)*sizebegcell);
+  else hipMemset(begcell+cellfluid,0,sizeof(int2)*(sizebegcell-cellfluid));
   const unsigned pini=(full? 0: npb);
   const unsigned n=np-pini;
   if(n){
@@ -764,8 +765,8 @@ void ReduUintLimits(unsigned nblocks,unsigned *aux,unsigned &vmin,unsigned &vmax
     unsigned* x=dat; dat=res; res=x;
   }
   unsigned resf[2];
-  cudaMemcpy(resf,dat,sizeof(unsigned)*2,cudaMemcpyDeviceToHost);
-  //fcuda::Check_CudaError("#>ReduMaxF Fallo en cudaMemcpy.");
+  hipMemcpy(resf,dat,sizeof(unsigned)*2,hipMemcpyDeviceToHost);
+  //fcuda::Check_CudaError("#>ReduMaxF Fallo en hipMemcpy.");
   vmin=resf[0];
   vmax=resf[1];
 }
@@ -837,8 +838,8 @@ unsigned ReduUintSum(unsigned nblocks,unsigned *aux){
     unsigned* x=dat; dat=res; res=x;
   }
   unsigned resf;
-  cudaMemcpy(&resf,dat,sizeof(unsigned),cudaMemcpyDeviceToHost);
-  //fcuda::Check_CudaError("#>ReduMaxF Fallo en cudaMemcpy.");
+  hipMemcpy(&resf,dat,sizeof(unsigned),hipMemcpyDeviceToHost);
+  //fcuda::Check_CudaError("#>ReduMaxF Fallo en hipMemcpy.");
   return(resf);
 }
 
@@ -885,7 +886,7 @@ unsigned ReduUintSum(unsigned nblocks,unsigned *aux){
 //  char cad[1024];
 //  sprintf(cad,"GetRangeParticlesCells> ncel:%u  celini:%u",ncel,celini); log->Print(cad);
 //  int2 *begcellh=new int2[ncel];
-//  cudaMemcpy(begcellh,begcell+celini,sizeof(int2)*ncel,cudaMemcpyDeviceToHost);
+//  hipMemcpy(begcellh,begcell+celini,sizeof(int2)*ncel,hipMemcpyDeviceToHost);
 //  unsigned pminh=UINT_MAX;
 //  unsigned pmaxh=0;
 //  for(unsigned p=0;p<ncel;p++){
@@ -938,7 +939,7 @@ unsigned ReduUintSum(unsigned nblocks,unsigned *aux){
 //  char cad[1024];
 //  //sprintf(cad,"GetParticlesCells> ncel:%u  celini:%u",ncel,celini); log->PrintDbg(cad);
 //  int2 *begcellh=new int2[ncel];
-//  cudaMemcpy(begcellh,begcell+celini,sizeof(int2)*ncel,cudaMemcpyDeviceToHost);
+//  hipMemcpy(begcellh,begcell+celini,sizeof(int2)*ncel,hipMemcpyDeviceToHost);
 //  unsigned sumh=0;
 //  for(unsigned p=0;p<ncel;p++){
 //    unsigned x=unsigned(begcellh[p].x),y=unsigned(begcellh[p].y);

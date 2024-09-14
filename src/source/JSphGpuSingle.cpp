@@ -473,7 +473,7 @@ void JSphGpuSingle::Interaction_Forces(TpInterStep interstep){
 
   //-Applies DDT.
   if(Deltag)cusph::AddDelta(Np-Npb,Deltag+Npb,Arg+Npb);//-Adds the Delta-SPH correction for the density. | Anhade correccion de Delta-SPH a Arg[]. 
-  cudaDeviceSynchronize();
+  hipDeviceSynchronize();
   Check_CudaErroor("Failed while executing kernels of interaction.");
 
   //-Calculates maximum value of ViscDt.
@@ -607,9 +607,9 @@ void JSphGpuSingle::UpdateFtObjs(){
     tfloat3  *fvelang=fvellin+FtCount;
     tfloat3  *facelin=fvelang+FtCount;
     tfloat3  *faceang=facelin+FtCount;
-    cudaMemcpy(fcen,FtoCenterg,sizeof(double3)*FtCount,cudaMemcpyDeviceToHost);
-    cudaMemcpy(fang,FtoAnglesg,sizeof(float3) *FtCount,cudaMemcpyDeviceToHost);
-    cudaMemcpy(fvellin,FtoVelAceg,sizeof(float3)*FtCount*4,cudaMemcpyDeviceToHost);
+    hipMemcpy(fcen,FtoCenterg,sizeof(double3)*FtCount,hipMemcpyDeviceToHost);
+    hipMemcpy(fang,FtoAnglesg,sizeof(float3) *FtCount,hipMemcpyDeviceToHost);
+    hipMemcpy(fvellin,FtoVelAceg,sizeof(float3)*FtCount*4,hipMemcpyDeviceToHost);
     for(unsigned cf=0;cf<FtCount;cf++){
       FtObjs[cf].center=fcen[cf];
       FtObjs[cf].angles=fang[cf];
@@ -634,7 +634,7 @@ void JSphGpuSingle::FtApplyImposedVel(float3 *ftoforcesresg)const{
     if(!ftoforcesresc && (v1!=TFloat3(FLT_MAX) || v2!=TFloat3(FLT_MAX))){
       //-Copies data on GPU memory to CPU memory.
       ftoforcesresc=FtoAuxFloat15;
-      cudaMemcpy(ftoforcesresc,ftoforcesresg,sizeof(tfloat3)*FtCount*2,cudaMemcpyDeviceToHost);
+      hipMemcpy(ftoforcesresc,ftoforcesresg,sizeof(tfloat3)*FtCount*2,hipMemcpyDeviceToHost);
     }
     unsigned cfpos=cf*2+1;
     if(v1.x!=FLT_MAX)ftoforcesresc[cfpos].x=v1.x;
@@ -647,7 +647,7 @@ void JSphGpuSingle::FtApplyImposedVel(float3 *ftoforcesresg)const{
   }
   //-Updates data on GPU memory.
   if(ftoforcesresc!=NULL){
-    cudaMemcpy(ftoforcesresg,ftoforcesresc,sizeof(tfloat3)*FtCount*2,cudaMemcpyHostToDevice);
+    hipMemcpy(ftoforcesresg,ftoforcesresc,sizeof(tfloat3)*FtCount*2,hipMemcpyHostToDevice);
   }
 }
 
@@ -673,11 +673,11 @@ void JSphGpuSingle::RunFloating(double dt,bool predictor){
         }
       }
       //-Copies data to GPU memory.
-      cudaMemcpy(FtoForcesg,ftoforces,sizeof(StFtoForces)*FtCount,cudaMemcpyHostToDevice);
+      hipMemcpy(FtoForcesg,ftoforces,sizeof(StFtoForces)*FtCount,hipMemcpyHostToDevice);
     }
     else{
       //-Initialises forces of floatings when no external forces are applied.
-      cudaMemset(FtoForcesg,0,sizeof(StFtoForces)*FtCount);
+      hipMemset(FtoForcesg,0,sizeof(StFtoForces)*FtCount);
     }
 
     //-Calculate forces summation (face,fomegaace) starting from floating particles and add in FtoForcesg[].
@@ -696,7 +696,7 @@ void JSphGpuSingle::RunFloating(double dt,bool predictor){
     //-Saves face and fomegace for debug.
     if(SaveFtAce){
       StFtoForces *ftoforces=(StFtoForces *)FtoAuxFloat15;
-      cudaMemcpy(ftoforces,FtoForcesg,sizeof(tfloat3)*FtCount*2,cudaMemcpyDeviceToHost);
+      hipMemcpy(ftoforces,FtoForcesg,sizeof(tfloat3)*FtCount*2,hipMemcpyDeviceToHost);
       SaveFtAceFun(dt,predictor,ftoforces);
     }
 
@@ -706,7 +706,7 @@ void JSphGpuSingle::RunFloating(double dt,bool predictor){
       Timersg->TmStart(TMG_SuChrono,false);
       //-Export data / Exporta datos.
       tfloat3* ftoforces=FtoAuxFloat15;
-      cudaMemcpy(ftoforces,FtoForcesg,sizeof(tfloat3)*FtCount*2,cudaMemcpyDeviceToHost);
+      hipMemcpy(ftoforces,FtoForcesg,sizeof(tfloat3)*FtCount*2,hipMemcpyDeviceToHost);
       for(unsigned cf=0;cf<FtCount;cf++)if(FtObjs[cf].usechrono){
         ChronoObjects->SetFtData(FtObjs[cf].mkbound,ftoforces[cf*2],ftoforces[cf*2+1]);
       }
@@ -716,11 +716,11 @@ void JSphGpuSingle::RunFloating(double dt,bool predictor){
       ChronoObjects->RunChrono(Nstep,TimeStep,dt,predictor);
       //-Load calculated data by Chrono / Carga datos calculados por Chrono.
       tdouble3* ftocenter=FtoAuxDouble6;
-      cudaMemcpy(ftocenter,FtoCenterResg,sizeof(tdouble3)*FtCount  ,cudaMemcpyDeviceToHost);//-Necesario para cargar datos de floatings sin chrono.
-      cudaMemcpy(ftoforces,FtoForcesResg,sizeof(tfloat3) *FtCount*2,cudaMemcpyDeviceToHost);//-Necesario para cargar datos de floatings sin chrono.
+      hipMemcpy(ftocenter,FtoCenterResg,sizeof(tdouble3)*FtCount  ,hipMemcpyDeviceToHost);//-Necesario para cargar datos de floatings sin chrono.
+      hipMemcpy(ftoforces,FtoForcesResg,sizeof(tfloat3) *FtCount*2,hipMemcpyDeviceToHost);//-Necesario para cargar datos de floatings sin chrono.
       for(unsigned cf=0;cf<FtCount;cf++)if(FtObjs[cf].usechrono)ChronoObjects->GetFtData(FtObjs[cf].mkbound,ftocenter[cf],ftoforces[cf*2+1],ftoforces[cf*2]);
-      cudaMemcpy(FtoCenterResg,ftocenter,sizeof(tdouble3)*FtCount  ,cudaMemcpyHostToDevice);
-      cudaMemcpy(FtoForcesResg,ftoforces,sizeof(float3)  *FtCount*2,cudaMemcpyHostToDevice);
+      hipMemcpy(FtoCenterResg,ftocenter,sizeof(tdouble3)*FtCount  ,hipMemcpyHostToDevice);
+      hipMemcpy(FtoForcesResg,ftoforces,sizeof(float3)  *FtCount*2,hipMemcpyHostToDevice);
       Timersg->TmStop(TMG_SuChrono,false);
       Timersg->TmStart(TMG_SuFloating,false);
     }
@@ -736,8 +736,8 @@ void JSphGpuSingle::RunFloating(double dt,bool predictor){
       if(UseNormalsFt){
         tdouble3 *fcen=FtoAuxDouble6;
         tfloat3  *fang=FtoAuxFloat15;
-        cudaMemcpy(fcen,FtoCenterg,sizeof(double3)*FtCount,cudaMemcpyDeviceToHost);
-        cudaMemcpy(fang,FtoAnglesg,sizeof(float3) *FtCount,cudaMemcpyDeviceToHost);
+        hipMemcpy(fcen,FtoCenterg,sizeof(double3)*FtCount,hipMemcpyDeviceToHost);
+        hipMemcpy(fang,FtoAnglesg,sizeof(float3) *FtCount,hipMemcpyDeviceToHost);
         for(unsigned cf=0;cf<FtCount;cf++){
           const StFloatingData fobj=FtObjs[cf];
           FtObjs[cf].center=fcen[cf];

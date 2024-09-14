@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -165,7 +166,7 @@ double CalcElevation(double time,double x,unsigned n,const double4 *coefe,double
 //    dim3 sgrid=GetSimpleGridSize(n,WAVEBSIZE);
 //    KerCalcPosition1 <<<sgrid,WAVEBSIZE>>> (n,time,dnm,coefx,aux);
 //    double *auxh=new double[n];
-//    cudaMemcpy(auxh,aux,sizeof(double)*n,cudaMemcpyDeviceToHost);
+//    hipMemcpy(auxh,aux,sizeof(double)*n,hipMemcpyDeviceToHost);
 //    for(unsigned c=0;c<n;c++)res+=auxh[c];
 //    delete[] auxh;
 //  }

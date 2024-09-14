@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSTOOLS
 /* 
  <DualSPHysics codes>  Copyright (c) 2020 by Dr. Jose M. Dominguez
@@ -495,12 +496,12 @@ unsigned ComputeDrift(unsigned n,unsigned pini,double xmin,double xmax
     //-Allocates memory on GPU.
     unsigned *res=NULL;
     size_t size=sizeof(unsigned)*(nblocks+curedus::GetAuxSize_ReduSumUint(nblocks));
-    cudaMalloc((void**)&res,size);
+    hipMalloc((void**)&res,size);
     //-Compute drift.
     KerComputeDrift<WAVEBSIZE><<<sgrid,WAVEBSIZE,smemSize>>>(n,pini,xmin,xmax,posxy,code,res);
     ret=curedus::ReduSumUint(nblocks,0,res,res+nblocks);
     //-Frees memory on GPU.
-    cudaFree(res);
+    hipFree(res);
   }
   return(ret);
 }

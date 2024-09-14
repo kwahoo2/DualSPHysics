@@ -22,7 +22,7 @@
 #define _JSphGpuSimple_ker_
 
 #include "DualSphDef.h"
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 /// Implements a set of functions and CUDA kernels for the particle interaction and system update.
 namespace cusphs{
@@ -32,13 +32,13 @@ namespace cusphs{
 //-Kernels to prepare data before Interaction_Forces().
 //-------------------------------------------------------
 void UpdatePosCell(unsigned np,tdouble3 posmin,float poscellsize
-  ,const double2 *posxy,const double *posz,float4 *poscell,cudaStream_t stm);
-void InitAceGravity(unsigned np,unsigned npb,tfloat3 gravity,float3 *ace,cudaStream_t stm);
+  ,const double2 *posxy,const double *posz,float4 *poscell,hipStream_t stm);
+void InitAceGravity(unsigned np,unsigned npb,tfloat3 gravity,float3 *ace,hipStream_t stm);
 
 
 //-Kernels to run after Interaction_Forces().
 //---------------------------------------------
-void Resety(unsigned n,unsigned ini,float3 *v,cudaStream_t stm);
+void Resety(unsigned n,unsigned ini,float3 *v,hipStream_t stm);
 
 
 //-Kernels for ComputeStep (vel & rhop).
@@ -47,15 +47,15 @@ void ComputeStepVerlet(bool floating,bool shift,bool inout,unsigned np,unsigned 
   ,const float4 *velrhop1,const float4 *velrhop2
   ,const float *ar,const float3 *ace,const float4 *shiftposfs,const float3 *indirvel
   ,double dt,double dt2,float rhopzero,float rhopoutmin,float rhopoutmax,tfloat3 gravity
-  ,typecode *code,double2 *movxy,double *movz,float4 *velrhopnew,cudaStream_t stm);
+  ,typecode *code,double2 *movxy,double *movz,float4 *velrhopnew,hipStream_t stm);
 void ComputeStepSymplecticPre(bool floating,bool shift,bool inout,unsigned np,unsigned npb
   ,const float4 *velrhoppre,const float *ar,const float3 *ace,const float4 *shiftposfs
   ,const float3 *indirvel,double dtm,float rhopzero,float rhopoutmin,float rhopoutmax,tfloat3 gravity
-  ,typecode *code,double2 *movxy,double *movz,float4 *velrhop,cudaStream_t stm);
+  ,typecode *code,double2 *movxy,double *movz,float4 *velrhop,hipStream_t stm);
 void ComputeStepSymplecticCor(bool floating,bool shift,bool inout,unsigned np,unsigned npb
   ,const float4 *velrhoppre,const float *ar,const float3 *ace,const float4 *shiftposfs
   ,const float3 *indirvel,double dtm,double dt,float rhopzero,float rhopoutmin,float rhopoutmax,tfloat3 gravity
-  ,typecode *code,double2 *movxy,double *movz,float4 *velrhop,cudaStream_t stm);
+  ,typecode *code,double2 *movxy,double *movz,float4 *velrhop,hipStream_t stm);
 
 
 }

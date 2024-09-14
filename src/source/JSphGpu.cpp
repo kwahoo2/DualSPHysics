@@ -76,7 +76,7 @@ JSphGpu::~JSphGpu(){
   delete ArraysGpu; ArraysGpu=NULL;
   delete GpuInfo;   GpuInfo=NULL;
   delete Timersg;    Timersg=NULL;
-  cudaDeviceReset();
+  hipDeviceReset();
 }
 
 //==============================================================================
@@ -84,9 +84,9 @@ JSphGpu::~JSphGpu(){
 //==============================================================================
 void JSphGpu::RunExceptioonCudaStatic(const std::string &srcfile,int srcline
   ,const std::string &method
-  ,cudaError_t cuerr,std::string msg)
+  ,hipError_t cuerr,std::string msg)
 {
-  msg=msg+fun::PrintStr(" (CUDA error %d (%s)).\n",cuerr,cudaGetErrorString(cuerr));
+  msg=msg+fun::PrintStr(" (CUDA error %d (%s)).\n",cuerr,hipGetErrorString(cuerr));
   throw JException(srcfile,srcline,"JSphGpu",method,msg,"");
 }
 
@@ -96,8 +96,8 @@ void JSphGpu::RunExceptioonCudaStatic(const std::string &srcfile,int srcline
 void JSphGpu::CheckCudaErroorStatic(const std::string &srcfile,int srcline
   ,const std::string &method,std::string msg)
 {
-  const cudaError_t cuerr=cudaGetLastError();
-  if(cuerr!=cudaSuccess)RunExceptioonCudaStatic(srcfile,srcline,method,cuerr,msg);
+  const hipError_t cuerr=hipGetLastError();
+  if(cuerr!=hipSuccess)RunExceptioonCudaStatic(srcfile,srcline,method,cuerr,msg);
 }
 
 //==============================================================================
@@ -105,9 +105,9 @@ void JSphGpu::CheckCudaErroorStatic(const std::string &srcfile,int srcline
 //==============================================================================
 void JSphGpu::RunExceptioonCuda(const std::string &srcfile,int srcline
   ,const std::string &classname,const std::string &method
-  ,cudaError_t cuerr,std::string msg)const
+  ,hipError_t cuerr,std::string msg)const
 {
-  msg=msg+fun::PrintStr(" (CUDA error %d (%s)).\n",cuerr,cudaGetErrorString(cuerr));
+  msg=msg+fun::PrintStr(" (CUDA error %d (%s)).\n",cuerr,hipGetErrorString(cuerr));
   throw JException(srcfile,srcline,classname,method,msg,"");
 }
 
@@ -119,8 +119,8 @@ void JSphGpu::CheckCudaErroor(const std::string &srcfile,int srcline
   ,const std::string &classname,const std::string &method
   ,std::string msg)const
 {
-  cudaError_t cuerr=cudaGetLastError();
-  if(cuerr!=cudaSuccess)RunExceptioonCuda(srcfile,srcline,classname,method,cuerr,msg);
+  hipError_t cuerr=hipGetLastError();
+  if(cuerr!=hipSuccess)RunExceptioonCuda(srcfile,srcline,classname,method,cuerr,msg);
 }
 
 //==============================================================================
@@ -196,20 +196,20 @@ void JSphGpu::AllocCpuMemoryFixed(){
 //==============================================================================
 void JSphGpu::FreeGpuMemoryFixed(){
   MemGpuFixed=0;
-  if(RidpMoveg)         cudaFree(RidpMoveg);          RidpMoveg=NULL;
-  if(FtRidpg)           cudaFree(FtRidpg);            FtRidpg=NULL;
-  if(FtoMasspg)         cudaFree(FtoMasspg);          FtoMasspg=NULL;
-  if(FtoDatpg)          cudaFree(FtoDatpg);           FtoDatpg=NULL;
-  if(FtoMassg)          cudaFree(FtoMassg);           FtoMassg=NULL;
-  if(FtoConstraintsg)   cudaFree(FtoConstraintsg);    FtoConstraintsg=NULL;
-  if(FtoForcesg)        cudaFree(FtoForcesg);         FtoForcesg=NULL;
-  if(FtoForcesResg)     cudaFree(FtoForcesResg);      FtoForcesResg=NULL;
-  if(FtoCenterg)        cudaFree(FtoCenterg);         FtoCenterg=NULL;
-  if(FtoAnglesg)        cudaFree(FtoAnglesg);         FtoAnglesg=NULL;
-  if(FtoVelAceg)        cudaFree(FtoVelAceg);         FtoVelAceg=NULL;
-  if(FtoInertiaini8g)   cudaFree(FtoInertiaini8g);    FtoInertiaini8g=NULL;
-  if(FtoInertiaini1g)   cudaFree(FtoInertiaini1g);    FtoInertiaini1g=NULL;
-  if(DemDatag)          cudaFree(DemDatag);           DemDatag=NULL;
+  if(RidpMoveg)         hipFree(RidpMoveg);          RidpMoveg=NULL;
+  if(FtRidpg)           hipFree(FtRidpg);            FtRidpg=NULL;
+  if(FtoMasspg)         hipFree(FtoMasspg);          FtoMasspg=NULL;
+  if(FtoDatpg)          hipFree(FtoDatpg);           FtoDatpg=NULL;
+  if(FtoMassg)          hipFree(FtoMassg);           FtoMassg=NULL;
+  if(FtoConstraintsg)   hipFree(FtoConstraintsg);    FtoConstraintsg=NULL;
+  if(FtoForcesg)        hipFree(FtoForcesg);         FtoForcesg=NULL;
+  if(FtoForcesResg)     hipFree(FtoForcesResg);      FtoForcesResg=NULL;
+  if(FtoCenterg)        hipFree(FtoCenterg);         FtoCenterg=NULL;
+  if(FtoAnglesg)        hipFree(FtoAnglesg);         FtoAnglesg=NULL;
+  if(FtoVelAceg)        hipFree(FtoVelAceg);         FtoVelAceg=NULL;
+  if(FtoInertiaini8g)   hipFree(FtoInertiaini8g);    FtoInertiaini8g=NULL;
+  if(FtoInertiaini1g)   hipFree(FtoInertiaini1g);    FtoInertiaini1g=NULL;
+  if(DemDatag)          hipFree(DemDatag);           DemDatag=NULL;
 }
 
 //==============================================================================
@@ -220,28 +220,28 @@ void JSphGpu::AllocGpuMemoryFixed(){
   //-Allocates memory for moving objects.
   if(CaseNmoving){
     size_t m=sizeof(unsigned)*CaseNmoving;
-    cudaMalloc((void**)&RidpMoveg,m);   MemGpuFixed+=m;
+    hipMalloc((void**)&RidpMoveg,m);   MemGpuFixed+=m;
   }
   //-Allocates memory for floating bodies.
   if(CaseNfloat){
     size_t m=0;
-    m=sizeof(unsigned)*CaseNfloat;  cudaMalloc((void**)&FtRidpg           ,m);  MemGpuFixed+=m;
-    m=sizeof(float)   *FtCount;     cudaMalloc((void**)&FtoMasspg         ,m);  MemGpuFixed+=m;
-    m=sizeof(float4)  *FtCount;     cudaMalloc((void**)&FtoDatpg          ,m);  MemGpuFixed+=m;
-    m=sizeof(float)   *FtCount;     cudaMalloc((void**)&FtoMassg          ,m);  MemGpuFixed+=m;
-    m=sizeof(byte)    *FtCount;     cudaMalloc((void**)&FtoConstraintsg   ,m);  MemGpuFixed+=m;
-    m=sizeof(float3)  *FtCount*2;   cudaMalloc((void**)&FtoForcesg        ,m);  MemGpuFixed+=m;
-    m=sizeof(float3)  *FtCount*2;   cudaMalloc((void**)&FtoForcesResg     ,m);  MemGpuFixed+=m;
-    m=sizeof(double3) *FtCount;     cudaMalloc((void**)&FtoCenterResg     ,m);  MemGpuFixed+=m;
-    m=sizeof(double3) *FtCount;     cudaMalloc((void**)&FtoCenterg        ,m);  MemGpuFixed+=m;
-    m=sizeof(float3)  *FtCount;     cudaMalloc((void**)&FtoAnglesg        ,m);  MemGpuFixed+=m;
-    m=sizeof(float3)  *FtCount*4;   cudaMalloc((void**)&FtoVelAceg        ,m);  MemGpuFixed+=m;
-    m=sizeof(float4)  *FtCount*2;   cudaMalloc((void**)&FtoInertiaini8g   ,m);  MemGpuFixed+=m;
-    m=sizeof(float)   *FtCount;     cudaMalloc((void**)&FtoInertiaini1g   ,m);  MemGpuFixed+=m;
+    m=sizeof(unsigned)*CaseNfloat;  hipMalloc((void**)&FtRidpg           ,m);  MemGpuFixed+=m;
+    m=sizeof(float)   *FtCount;     hipMalloc((void**)&FtoMasspg         ,m);  MemGpuFixed+=m;
+    m=sizeof(float4)  *FtCount;     hipMalloc((void**)&FtoDatpg          ,m);  MemGpuFixed+=m;
+    m=sizeof(float)   *FtCount;     hipMalloc((void**)&FtoMassg          ,m);  MemGpuFixed+=m;
+    m=sizeof(byte)    *FtCount;     hipMalloc((void**)&FtoConstraintsg   ,m);  MemGpuFixed+=m;
+    m=sizeof(float3)  *FtCount*2;   hipMalloc((void**)&FtoForcesg        ,m);  MemGpuFixed+=m;
+    m=sizeof(float3)  *FtCount*2;   hipMalloc((void**)&FtoForcesResg     ,m);  MemGpuFixed+=m;
+    m=sizeof(double3) *FtCount;     hipMalloc((void**)&FtoCenterResg     ,m);  MemGpuFixed+=m;
+    m=sizeof(double3) *FtCount;     hipMalloc((void**)&FtoCenterg        ,m);  MemGpuFixed+=m;
+    m=sizeof(float3)  *FtCount;     hipMalloc((void**)&FtoAnglesg        ,m);  MemGpuFixed+=m;
+    m=sizeof(float3)  *FtCount*4;   hipMalloc((void**)&FtoVelAceg        ,m);  MemGpuFixed+=m;
+    m=sizeof(float4)  *FtCount*2;   hipMalloc((void**)&FtoInertiaini8g   ,m);  MemGpuFixed+=m;
+    m=sizeof(float)   *FtCount;     hipMalloc((void**)&FtoInertiaini1g   ,m);  MemGpuFixed+=m;
   }
   if(UseDEM){ //(DEM)
     size_t m=sizeof(float4)*DemDataSize;
-    cudaMalloc((void**)&DemDatag,m);     MemGpuFixed+=m;
+    hipMalloc((void**)&DemDatag,m);     MemGpuFixed+=m;
   }
 }
 
@@ -440,7 +440,7 @@ template<class T> T* JSphGpu::TSaveArrayGpu(unsigned np,const T *datasrc)const{
     catch(const std::bad_alloc){
       Run_Exceptioon("Could not allocate the requested memory.");
     }
-    cudaMemcpy(data,datasrc,sizeof(T)*np,cudaMemcpyDeviceToHost);
+    hipMemcpy(data,datasrc,sizeof(T)*np,hipMemcpyDeviceToHost);
   }
   return(data);
 }
@@ -449,7 +449,7 @@ template<class T> T* JSphGpu::TSaveArrayGpu(unsigned np,const T *datasrc)const{
 /// Restores a GPU array (generic) from CPU memory. 
 //==============================================================================
 template<class T> void JSphGpu::TRestoreArrayGpu(unsigned np,T *data,T *datanew)const{
-  if(data&&datanew)cudaMemcpy(datanew,data,sizeof(T)*np,cudaMemcpyHostToDevice);
+  if(data&&datanew)hipMemcpy(datanew,data,sizeof(T)*np,hipMemcpyHostToDevice);
   delete[] data;
 }
 
@@ -561,13 +561,13 @@ void JSphGpu::ConstantDataUp(){
 /// Sube datos de particulas a la GPU.
 //==============================================================================
 void JSphGpu::ParticlesDataUp(unsigned n,const tfloat3 *boundnormal){
-  cudaMemcpy(Idpg    ,Idp    ,sizeof(unsigned)*n,cudaMemcpyHostToDevice);
-  cudaMemcpy(Codeg   ,Code   ,sizeof(typecode)*n,cudaMemcpyHostToDevice);
-  cudaMemcpy(Dcellg  ,Dcell  ,sizeof(unsigned)*n,cudaMemcpyHostToDevice);
-  cudaMemcpy(Posxyg  ,Posxy  ,sizeof(double2)*n ,cudaMemcpyHostToDevice);
-  cudaMemcpy(Poszg   ,Posz   ,sizeof(double)*n  ,cudaMemcpyHostToDevice);
-  cudaMemcpy(Velrhopg,Velrhop,sizeof(float4)*n  ,cudaMemcpyHostToDevice);
-  if(UseNormals)cudaMemcpy(BoundNormalg,boundnormal,sizeof(float3)*n,cudaMemcpyHostToDevice);
+  hipMemcpy(Idpg    ,Idp    ,sizeof(unsigned)*n,hipMemcpyHostToDevice);
+  hipMemcpy(Codeg   ,Code   ,sizeof(typecode)*n,hipMemcpyHostToDevice);
+  hipMemcpy(Dcellg  ,Dcell  ,sizeof(unsigned)*n,hipMemcpyHostToDevice);
+  hipMemcpy(Posxyg  ,Posxy  ,sizeof(double2)*n ,hipMemcpyHostToDevice);
+  hipMemcpy(Poszg   ,Posz   ,sizeof(double)*n  ,hipMemcpyHostToDevice);
+  hipMemcpy(Velrhopg,Velrhop,sizeof(float4)*n  ,hipMemcpyHostToDevice);
+  if(UseNormals)hipMemcpy(BoundNormalg,boundnormal,sizeof(float3)*n,hipMemcpyHostToDevice);
   Check_CudaErroor("Failed copying data to GPU.");
 }
 
@@ -584,11 +584,11 @@ void JSphGpu::ParticlesDataUp(unsigned n,const tfloat3 *boundnormal){
 //==============================================================================
 unsigned JSphGpu::ParticlesDataDown(unsigned n,unsigned pini,bool code,bool onlynormal){
   unsigned num=n;
-  cudaMemcpy(Idp    ,Idpg    +pini,sizeof(unsigned)*n,cudaMemcpyDeviceToHost);
-  cudaMemcpy(Posxy  ,Posxyg  +pini,sizeof(double2) *n,cudaMemcpyDeviceToHost);
-  cudaMemcpy(Posz   ,Poszg   +pini,sizeof(double)  *n,cudaMemcpyDeviceToHost);
-  cudaMemcpy(Velrhop,Velrhopg+pini,sizeof(float4)  *n,cudaMemcpyDeviceToHost);
-  if(code || onlynormal)cudaMemcpy(Code,Codeg+pini,sizeof(typecode)*n,cudaMemcpyDeviceToHost);
+  hipMemcpy(Idp    ,Idpg    +pini,sizeof(unsigned)*n,hipMemcpyDeviceToHost);
+  hipMemcpy(Posxy  ,Posxyg  +pini,sizeof(double2) *n,hipMemcpyDeviceToHost);
+  hipMemcpy(Posz   ,Poszg   +pini,sizeof(double)  *n,hipMemcpyDeviceToHost);
+  hipMemcpy(Velrhop,Velrhopg+pini,sizeof(float4)  *n,hipMemcpyDeviceToHost);
+  if(code || onlynormal)hipMemcpy(Code,Codeg+pini,sizeof(typecode)*n,hipMemcpyDeviceToHost);
   Check_CudaErroor("Failed copying data from GPU.");
   //-Eliminates abnormal particles (periodic and others). | Elimina particulas no normales (periodicas y otras).
   if(onlynormal){
@@ -626,7 +626,7 @@ void JSphGpu::SelecDevice(int gpuid){
   Log->Print("[GPU Hardware]");
   GpuInfo->SelectGpu(gpuid);
   GpuInfo->ShowSelectGpusInfo(Log);
-  cudaSetDevice(GpuInfo->GetGpuId());
+  hipSetDevice(GpuInfo->GetGpuId());
 }
 
 //==============================================================================
@@ -721,7 +721,7 @@ void JSphGpu::InitFloating(){
   {
     float *massp=new float[FtCount];
     for(unsigned cf=0;cf<FtCount;cf++)massp[cf]=FtObjs[cf].massp;
-    cudaMemcpy(FtoMasspg,massp,sizeof(float)*FtCount,cudaMemcpyHostToDevice);
+    hipMemcpy(FtoMasspg,massp,sizeof(float)*FtCount,hipMemcpyHostToDevice);
     delete[] massp;
   }
   //-Copies floating values to GPU.
@@ -759,14 +759,14 @@ void JSphGpu::InitFloating(){
       inert8[cf*2+1]=TFloat4(v.a22,v.a23,v.a31,v.a32);
       inert1[cf]    =v.a33;
     }
-    cudaMemcpy(FtoDatpg       ,datp  ,sizeof(float4)   *FtCount  ,cudaMemcpyHostToDevice);
-    cudaMemcpy(FtoMassg       ,ftmass,sizeof(float)    *FtCount  ,cudaMemcpyHostToDevice);
-    cudaMemcpy(FtoConstraintsg,constr,sizeof(byte)     *FtCount  ,cudaMemcpyHostToDevice);
-    cudaMemcpy(FtoCenterg     ,center,sizeof(double3)  *FtCount  ,cudaMemcpyHostToDevice);
-    cudaMemcpy(FtoAnglesg     ,angles,sizeof(float3)   *FtCount  ,cudaMemcpyHostToDevice);
-    cudaMemcpy(FtoVelAceg     ,velace,sizeof(float3)   *FtCount*4,cudaMemcpyHostToDevice);
-    cudaMemcpy(FtoInertiaini8g,inert8,sizeof(float4)   *FtCount*2,cudaMemcpyHostToDevice);
-    cudaMemcpy(FtoInertiaini1g,inert1,sizeof(float)    *FtCount  ,cudaMemcpyHostToDevice);
+    hipMemcpy(FtoDatpg       ,datp  ,sizeof(float4)   *FtCount  ,hipMemcpyHostToDevice);
+    hipMemcpy(FtoMassg       ,ftmass,sizeof(float)    *FtCount  ,hipMemcpyHostToDevice);
+    hipMemcpy(FtoConstraintsg,constr,sizeof(byte)     *FtCount  ,hipMemcpyHostToDevice);
+    hipMemcpy(FtoCenterg     ,center,sizeof(double3)  *FtCount  ,hipMemcpyHostToDevice);
+    hipMemcpy(FtoAnglesg     ,angles,sizeof(float3)   *FtCount  ,hipMemcpyHostToDevice);
+    hipMemcpy(FtoVelAceg     ,velace,sizeof(float3)   *FtCount*4,hipMemcpyHostToDevice);
+    hipMemcpy(FtoInertiaini8g,inert8,sizeof(float4)   *FtCount*2,hipMemcpyHostToDevice);
+    hipMemcpy(FtoInertiaini1g,inert1,sizeof(float)    *FtCount  ,hipMemcpyHostToDevice);
     delete[] datp;
     delete[] ftmass;
     delete[] center;
@@ -784,7 +784,7 @@ void JSphGpu::InitFloating(){
       data[c].z=DemData[c].kfric;
       data[c].w=DemData[c].restitu;
     }
-    cudaMemcpy(DemDatag,data,sizeof(float4)*DemDataSize,cudaMemcpyHostToDevice);
+    hipMemcpy(DemDatag,data,sizeof(float4)*DemDataSize,hipMemcpyHostToDevice);
     delete[] data;
   }
 }
@@ -797,10 +797,10 @@ void JSphGpu::InitRunGpu(){
   ParticlesDataDown(Np,0,false,false);
   InitRun(Np,Idp,AuxPos);
 
-  if(TStep==STEP_Verlet)cudaMemcpy(VelrhopM1g,Velrhopg,sizeof(float4)*Np,cudaMemcpyDeviceToDevice);
-  if(TVisco==VISCO_LaminarSPS)cudaMemset(SpsTaug,0,sizeof(tsymatrix3f)*Np);
+  if(TStep==STEP_Verlet)hipMemcpy(VelrhopM1g,Velrhopg,sizeof(float4)*Np,hipMemcpyDeviceToDevice);
+  if(TVisco==VISCO_LaminarSPS)hipMemset(SpsTaug,0,sizeof(tsymatrix3f)*Np);
   if(CaseNfloat)InitFloating();
-  if(MotionVelg)cudaMemset(MotionVelg,0,sizeof(float3)*Np);
+  if(MotionVelg)hipMemset(MotionVelg,0,sizeof(float3)*Np);
   Check_CudaErroor("Failed initializing variables for execution.");
 }
 
@@ -811,11 +811,11 @@ void JSphGpu::InitRunGpu(){
 void JSphGpu::PreInteractionVars_Forces(unsigned np,unsigned npb){
   //-Initialise arrays.
   const unsigned npf=np-npb;
-  cudaMemset(ViscDtg,0,sizeof(float)*np);                                //ViscDtg[]=0
-  cudaMemset(Arg,0,sizeof(float)*np);                                    //Arg[]=0
-  if(Deltag)cudaMemset(Deltag,0,sizeof(float)*np);                       //Deltag[]=0
-  cudaMemset(Aceg,0,sizeof(tfloat3)*np);                                 //Aceg[]=(0,0,0)
-  if(SpsGradvelg)cudaMemset(SpsGradvelg+npb,0,sizeof(tsymatrix3f)*npf);  //SpsGradvelg[]=(0,0,0,0,0,0).
+  hipMemset(ViscDtg,0,sizeof(float)*np);                                //ViscDtg[]=0
+  hipMemset(Arg,0,sizeof(float)*np);                                    //Arg[]=0
+  if(Deltag)hipMemset(Deltag,0,sizeof(float)*np);                       //Deltag[]=0
+  hipMemset(Aceg,0,sizeof(tfloat3)*np);                                 //Aceg[]=(0,0,0)
+  if(SpsGradvelg)hipMemset(SpsGradvelg+npb,0,sizeof(tsymatrix3f)*npf);  //SpsGradvelg[]=(0,0,0,0,0,0).
 
   //-Select particles for shifting.
   if(ShiftPosfsg)Shifting->InitGpu(npf,npb,Posxyg,Poszg,ShiftPosfsg);
@@ -847,7 +847,7 @@ void JSphGpu::PreInteraction_Forces(){
   cusph::ComputeVelMod(Np-pini,Velrhopg+pini,ViscDtg);
   float velmax=cusph::ReduMaxFloat(Np-pini,0,ViscDtg,CellDiv->GetAuxMem(cusph::ReduMaxFloatSize(Np-pini)));
   VelMax=sqrt(velmax);
-  cudaMemset(ViscDtg,0,sizeof(float)*Np);           //ViscDtg[]=0
+  hipMemset(ViscDtg,0,sizeof(float)*Np);           //ViscDtg[]=0
   ViscDtMax=0;
   Timersg->TmStop(TMG_CfPreForces,true);
   Check_CudaErroor("Failed calculating VelMax.");
@@ -940,8 +940,8 @@ void JSphGpu::ComputeSymplecticPre(double dt){
   ArraysGpu->Free(movzg);    movzg=NULL;
   //-Copies previous position of the boundaries.
   //-Copia posicion anterior del contorno.
-  cudaMemcpy(Posxyg,PosxyPreg,sizeof(double2)*Npb,cudaMemcpyDeviceToDevice);
-  cudaMemcpy(Poszg,PoszPreg,sizeof(double)*Npb,cudaMemcpyDeviceToDevice);
+  hipMemcpy(Posxyg,PosxyPreg,sizeof(double2)*Npb,hipMemcpyDeviceToDevice);
+  hipMemcpy(Poszg,PoszPreg,sizeof(double)*Npb,hipMemcpyDeviceToDevice);
   Timersg->TmStop(TMG_SuComputeStep,false);
 }
 
@@ -1160,8 +1160,8 @@ void JSphGpu::DgSaveVtkParticlesGpu(std::string filename,int numfile,unsigned pi
   {
     tdouble2 *pxy=new tdouble2[n];
     double *pz=new double[n];
-    cudaMemcpy(pxy,posxyg+pini,sizeof(double2)*n,cudaMemcpyDeviceToHost);
-    cudaMemcpy(pz,poszg+pini,sizeof(double)*n,cudaMemcpyDeviceToHost);
+    hipMemcpy(pxy,posxyg+pini,sizeof(double2)*n,hipMemcpyDeviceToHost);
+    hipMemcpy(pz,poszg+pini,sizeof(double)*n,hipMemcpyDeviceToHost);
     for(unsigned p=0;p<n;p++)pos[p]=TFloat3(float(pxy[p].x),float(pxy[p].y),float(pz[p]));
     delete[] pxy;
     delete[] pz;
@@ -1170,14 +1170,14 @@ void JSphGpu::DgSaveVtkParticlesGpu(std::string filename,int numfile,unsigned pi
   unsigned *idp=NULL;
   if(idpg){
     idp=new unsigned[n];
-    cudaMemcpy(idp,idpg+pini,sizeof(unsigned)*n,cudaMemcpyDeviceToHost);
+    hipMemcpy(idp,idpg+pini,sizeof(unsigned)*n,hipMemcpyDeviceToHost);
   }
   //-Loads dcel.
   tuint3 *dcel=NULL;
   if(dcelg){
     dcel=new tuint3[n];
     unsigned *aux=new unsigned[n];
-    cudaMemcpy(aux,dcelg+pini,sizeof(unsigned)*n,cudaMemcpyDeviceToHost);
+    hipMemcpy(aux,dcelg+pini,sizeof(unsigned)*n,hipMemcpyDeviceToHost);
     for(unsigned p=0;p<n;p++)dcel[p]=TUint3(unsigned(DCEL_Cellx(cellcode,aux[p])),unsigned(DCEL_Celly(cellcode,aux[p])),unsigned(DCEL_Cellz(cellcode,aux[p])));
     delete[] aux;
   }
@@ -1188,7 +1188,7 @@ void JSphGpu::DgSaveVtkParticlesGpu(std::string filename,int numfile,unsigned pi
     vel=new tfloat3[n];
     rhop=new float[n];
     tfloat4 *aux=new tfloat4[n];
-    cudaMemcpy(aux,velrhopg+pini,sizeof(float4)*n,cudaMemcpyDeviceToHost);
+    hipMemcpy(aux,velrhopg+pini,sizeof(float4)*n,hipMemcpyDeviceToHost);
     for(unsigned p=0;p<n;p++){ vel[p]=TFloat3(aux[p].x,aux[p].y,aux[p].z); rhop[p]=aux[p].w; }
     delete[] aux;
   }
@@ -1199,7 +1199,7 @@ void JSphGpu::DgSaveVtkParticlesGpu(std::string filename,int numfile,unsigned pi
     velm1=new tfloat3[n];
     rhopm1=new float[n];
     tfloat4 *aux=new tfloat4[n];
-    cudaMemcpy(aux,velrhopm1g+pini,sizeof(float4)*n,cudaMemcpyDeviceToHost);
+    hipMemcpy(aux,velrhopm1g+pini,sizeof(float4)*n,hipMemcpyDeviceToHost);
     for(unsigned p=0;p<n;p++){ velm1[p]=TFloat3(aux[p].x,aux[p].y,aux[p].z); rhopm1[p]=aux[p].w; }
     delete[] aux;
   }
@@ -1207,14 +1207,14 @@ void JSphGpu::DgSaveVtkParticlesGpu(std::string filename,int numfile,unsigned pi
   tfloat3 *ace=NULL;
   if(aceg){
     ace=new tfloat3[n];
-    cudaMemcpy(ace,aceg+pini,sizeof(float3)*n,cudaMemcpyDeviceToHost);
+    hipMemcpy(ace,aceg+pini,sizeof(float3)*n,hipMemcpyDeviceToHost);
   }
   //-Loads type.
   byte *type=NULL;
   if(codeg){
     type=new byte[n];
     typecode *aux=new typecode[n];
-    cudaMemcpy(aux,codeg+pini,sizeof(typecode)*n,cudaMemcpyDeviceToHost);
+    hipMemcpy(aux,codeg+pini,sizeof(typecode)*n,hipMemcpyDeviceToHost);
     for(unsigned p=0;p<n;p++){ 
       const typecode cod=aux[p];
       byte tp=99;
@@ -1306,11 +1306,11 @@ void JSphGpu::DgSaveVtkParticlesGpu(std::string filename,int numfile,unsigned pi
   if(velg)vel=new tfloat3[n];
   if(rhopg)rhop=new float[n];
   //-Copies data from GPU.
-  cudaMemcpy(pos,posg+pini,sizeof(float3)*n,cudaMemcpyDeviceToHost);
-  if(checkg)cudaMemcpy(check,checkg+pini,sizeof(byte)*n,cudaMemcpyDeviceToHost);
-  if(idpg)cudaMemcpy(idp,idpg+pini,sizeof(unsigned)*n,cudaMemcpyDeviceToHost);
-  if(velg)cudaMemcpy(vel,velg+pini,sizeof(float3)*n,cudaMemcpyDeviceToHost);
-  if(rhopg)cudaMemcpy(rhop,rhopg+pini,sizeof(float)*n,cudaMemcpyDeviceToHost);
+  hipMemcpy(pos,posg+pini,sizeof(float3)*n,hipMemcpyDeviceToHost);
+  if(checkg)hipMemcpy(check,checkg+pini,sizeof(byte)*n,hipMemcpyDeviceToHost);
+  if(idpg)hipMemcpy(idp,idpg+pini,sizeof(unsigned)*n,hipMemcpyDeviceToHost);
+  if(velg)hipMemcpy(vel,velg+pini,sizeof(float3)*n,hipMemcpyDeviceToHost);
+  if(rhopg)hipMemcpy(rhop,rhopg+pini,sizeof(float)*n,hipMemcpyDeviceToHost);
   //-Generates VTK file.
   DgSaveVtkParticlesCpu(filename,numfile,0,n,pos,check,idp,vel,rhop);
   //-Frees memory.
@@ -1336,13 +1336,13 @@ void JSphGpu::DgSaveCsvParticlesGpu(std::string filename,int numfile,unsigned pi
   tfloat3 *ace=NULL;   if(aceg)ace=new tfloat3[n];
   tfloat3 *vcorr=NULL; if(vcorrg)vcorr=new tfloat3[n];
   //-Copies data from GPU.
-  if(idpg)cudaMemcpy(idp,idpg+pini,sizeof(unsigned)*n,cudaMemcpyDeviceToHost);
-  if(posg)cudaMemcpy(pos,posg+pini,sizeof(float3)*n,cudaMemcpyDeviceToHost);
-  if(velg)cudaMemcpy(vel,velg+pini,sizeof(float3)*n,cudaMemcpyDeviceToHost);
-  if(rhopg)cudaMemcpy(rhop,rhopg+pini,sizeof(float)*n,cudaMemcpyDeviceToHost);
-  if(arg)cudaMemcpy(ar,arg+pini,sizeof(float)*n,cudaMemcpyDeviceToHost);
-  if(aceg)cudaMemcpy(ace,aceg+pini,sizeof(float3)*n,cudaMemcpyDeviceToHost);
-  if(vcorrg)cudaMemcpy(vcorr,vcorrg+pini,sizeof(float3)*n,cudaMemcpyDeviceToHost);
+  if(idpg)hipMemcpy(idp,idpg+pini,sizeof(unsigned)*n,hipMemcpyDeviceToHost);
+  if(posg)hipMemcpy(pos,posg+pini,sizeof(float3)*n,hipMemcpyDeviceToHost);
+  if(velg)hipMemcpy(vel,velg+pini,sizeof(float3)*n,hipMemcpyDeviceToHost);
+  if(rhopg)hipMemcpy(rhop,rhopg+pini,sizeof(float)*n,hipMemcpyDeviceToHost);
+  if(arg)hipMemcpy(ar,arg+pini,sizeof(float)*n,hipMemcpyDeviceToHost);
+  if(aceg)hipMemcpy(ace,aceg+pini,sizeof(float3)*n,hipMemcpyDeviceToHost);
+  if(vcorrg)hipMemcpy(vcorr,vcorrg+pini,sizeof(float3)*n,hipMemcpyDeviceToHost);
   Check_CudaErroor("Failed copying data from GPU.");
   //-Generates CSV file.
   DgSaveCsvParticlesCpu(filename,numfile,0,n,head,pos,idp,vel,rhop,ar,ace,vcorr);
@@ -1370,12 +1370,12 @@ void JSphGpu::DgSaveCsvParticlesGpu2(std::string filename,int numfile,unsigned p
   tfloat4 *pospres=NULL;  if(pospresg)pospres=new tfloat4[n];
   tfloat4 *velrhop=NULL;  if(velrhopg)velrhop=new tfloat4[n];
   //-Copies data from GPU.
-  if(idpg)cudaMemcpy(idp,idpg+pini,sizeof(unsigned)*n,cudaMemcpyDeviceToHost);
-  if(posg)cudaMemcpy(pos,posg+pini,sizeof(float3)*n,cudaMemcpyDeviceToHost);
-  if(velg)cudaMemcpy(vel,velg+pini,sizeof(float3)*n,cudaMemcpyDeviceToHost);
-  if(rhopg)cudaMemcpy(rhop,rhopg+pini,sizeof(float)*n,cudaMemcpyDeviceToHost);
-  if(pospresg)cudaMemcpy(pospres,pospresg+pini,sizeof(float4)*n,cudaMemcpyDeviceToHost);
-  if(velrhopg)cudaMemcpy(velrhop,velrhopg+pini,sizeof(float4)*n,cudaMemcpyDeviceToHost);
+  if(idpg)hipMemcpy(idp,idpg+pini,sizeof(unsigned)*n,hipMemcpyDeviceToHost);
+  if(posg)hipMemcpy(pos,posg+pini,sizeof(float3)*n,hipMemcpyDeviceToHost);
+  if(velg)hipMemcpy(vel,velg+pini,sizeof(float3)*n,hipMemcpyDeviceToHost);
+  if(rhopg)hipMemcpy(rhop,rhopg+pini,sizeof(float)*n,hipMemcpyDeviceToHost);
+  if(pospresg)hipMemcpy(pospres,pospresg+pini,sizeof(float4)*n,hipMemcpyDeviceToHost);
+  if(velrhopg)hipMemcpy(velrhop,velrhopg+pini,sizeof(float4)*n,hipMemcpyDeviceToHost);
   Check_CudaErroor("Failed copying data from GPU.");
   //-Generates CSV file.
   DgSaveCsvParticles2(filename,numfile,0,n,head,pos,idp,vel,rhop,pospres,velrhop);

@@ -42,10 +42,10 @@ JWaveSpectrumGpu::JWaveSpectrumGpu(){
 void JWaveSpectrumGpu::FreeMemoryGpu(){
   MemGpuFixed=0;
   #ifdef _WITHGPU
-    if(Order2CoefsEtag)cudaFree(Order2CoefsEtag);   Order2CoefsEtag=NULL;
-    if(Order2CoefsDnmg)cudaFree(Order2CoefsDnmg);   Order2CoefsDnmg=NULL;
-    if(Order2CoefsPosg)cudaFree(Order2CoefsPosg);   Order2CoefsPosg=NULL;
-    if(Order2Auxg)     cudaFree(Order2Auxg);        Order2Auxg=NULL;
+    if(Order2CoefsEtag)hipFree(Order2CoefsEtag);   Order2CoefsEtag=NULL;
+    if(Order2CoefsDnmg)hipFree(Order2CoefsDnmg);   Order2CoefsDnmg=NULL;
+    if(Order2CoefsPosg)hipFree(Order2CoefsPosg);   Order2CoefsPosg=NULL;
+    if(Order2Auxg)     hipFree(Order2Auxg);        Order2Auxg=NULL;
   #endif 
 }
 
@@ -57,14 +57,14 @@ void JWaveSpectrumGpu::AllocMemoryGpu(unsigned sizewavecoefs){
   #ifdef _WITHGPU
     MemGpuFixed=0;
     size_t m=sizeof(double4)*sizewavecoefs;
-    cudaMalloc((void**)&Order2CoefsEtag,m);     MemGpuFixed+=m;
+    hipMalloc((void**)&Order2CoefsEtag,m);     MemGpuFixed+=m;
     m=sizeof(double)*sizewavecoefs;
-    cudaMalloc((void**)&Order2CoefsDnmg,m);     MemGpuFixed+=m;
+    hipMalloc((void**)&Order2CoefsDnmg,m);     MemGpuFixed+=m;
     m=sizeof(double2)*sizewavecoefs;
-    cudaMalloc((void**)&Order2CoefsPosg,m);     MemGpuFixed+=m;
+    hipMalloc((void**)&Order2CoefsPosg,m);     MemGpuFixed+=m;
     m=sizeof(double)*cuwave2::GetSizeAux(sizewavecoefs);
     //m=sizeof(double)*SizeWaveCoefs*2+512; 
-    cudaMalloc((void**)&Order2Auxg,m);          MemGpuFixed+=m;
+    hipMalloc((void**)&Order2Auxg,m);          MemGpuFixed+=m;
   #endif
 }
 
@@ -73,9 +73,9 @@ void JWaveSpectrumGpu::AllocMemoryGpu(unsigned sizewavecoefs){
 //==============================================================================
 void JWaveSpectrumGpu::CopyCoefs(unsigned sizewavecoefs,const tdouble4 *d4,const double *d1,const tdouble2 *d2){
   #ifdef _WITHGPU
-    cudaMemcpy(Order2CoefsEtag,d4,sizeof(double4)*sizewavecoefs,cudaMemcpyHostToDevice);
-    cudaMemcpy(Order2CoefsDnmg,d1,sizeof(double) *sizewavecoefs,cudaMemcpyHostToDevice);
-    cudaMemcpy(Order2CoefsPosg,d2,sizeof(double2)*sizewavecoefs,cudaMemcpyHostToDevice);
+    hipMemcpy(Order2CoefsEtag,d4,sizeof(double4)*sizewavecoefs,hipMemcpyHostToDevice);
+    hipMemcpy(Order2CoefsDnmg,d1,sizeof(double) *sizewavecoefs,hipMemcpyHostToDevice);
+    hipMemcpy(Order2CoefsPosg,d2,sizeof(double2)*sizewavecoefs,hipMemcpyHostToDevice);
   #endif
 }
 

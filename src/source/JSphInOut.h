@@ -38,7 +38,7 @@
 #include "DualSphDef.h"
 #include "JSphInOutDef.h"
 #ifdef _WITHGPU
-  #include <cuda_runtime_api.h>
+  #include <hip/hip_runtime_api.h>
 #endif
 
 #define DBG_INOUT_PTINIT 0   ///<JSphInOut: Saves VTK files (CfgInOut_PtInit.vtk and CfgInOut_PtInitZ.vtk) with initial inout points (0/1).

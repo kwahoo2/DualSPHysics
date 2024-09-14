@@ -23,7 +23,7 @@
 
 #include "DualSphDef.h"
 #include "JCellDivDataGpu.h"
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 /// Implements a set of functions and CUDA kernels for classes that manage gauges.
 namespace cugauge{

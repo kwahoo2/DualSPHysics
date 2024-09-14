@@ -46,13 +46,13 @@ class JSphGpu : public JSph
 protected:
   static void RunExceptioonCudaStatic(const std::string &srcfile,int srcline
     ,const std::string &method
-    ,cudaError_t cuerr,std::string msg);
+    ,hipError_t cuerr,std::string msg);
   static void CheckCudaErroorStatic(const std::string &srcfile,int srcline
     ,const std::string &method
     ,std::string msg);
   void RunExceptioonCuda(const std::string &srcfile,int srcline
     ,const std::string &classname,const std::string &method
-    ,cudaError_t cuerr,std::string msg)const;
+    ,hipError_t cuerr,std::string msg)const;
   void CheckCudaErroor(const std::string &srcfile,int srcline
     ,const std::string &classname,const std::string &method
     ,std::string msg)const;

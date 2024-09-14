@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -62,7 +63,7 @@ __global__ void KerUpdatePosCell(unsigned np,double3 posmin,float poscellsize
 /// Actualiza PosCellg[] segun la posicion de las particulas.
 //==============================================================================
 void UpdatePosCell(unsigned np,tdouble3 posmin,float poscellsize
-  ,const double2 *posxy,const double *posz,float4 *poscell,cudaStream_t stm)
+  ,const double2 *posxy,const double *posz,float4 *poscell,hipStream_t stm)
 {
   const dim3 sgrid=GetSimpleGridSize(np,SPHBSIZE);
   if(np)KerUpdatePosCell <<<sgrid,SPHBSIZE,0,stm>>> (np,Double3(posmin),poscellsize,posxy,posz,poscell);
@@ -83,7 +84,7 @@ __global__ void KerInitAceGravity(unsigned np,unsigned npb,float3 gravity,float3
 /// Initialises ace array with 0 for bound and gravity for fluid.
 /// Inicializa el array ace con 0 para contorno y gravity para fluido.
 //==============================================================================
-void InitAceGravity(unsigned np,unsigned npb,tfloat3 gravity,float3 *ace,cudaStream_t stm){
+void InitAceGravity(unsigned np,unsigned npb,tfloat3 gravity,float3 *ace,hipStream_t stm){
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,SPHBSIZE);
     KerInitAceGravity <<<sgrid,SPHBSIZE,0,stm>>> (np,npb,Float3(gravity),ace);
@@ -107,7 +108,7 @@ __global__ void KerResety(unsigned n,unsigned ini,float3 *v)
 /// Sets v[].y to zero.
 /// Pone v[].y a cero.
 //==============================================================================
-void Resety(unsigned n,unsigned ini,float3 *v,cudaStream_t stm){
+void Resety(unsigned n,unsigned ini,float3 *v,hipStream_t stm){
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
     KerResety <<<sgrid,SPHBSIZE,0,stm>>> (n,ini,v);
@@ -208,7 +209,7 @@ void ComputeStepVerlet(bool floating,bool shift,bool inout,unsigned np,unsigned 
   ,const float4 *velrhop1,const float4 *velrhop2
   ,const float *ar,const float3 *ace,const float4 *shiftposfs,const float3 *indirvel
   ,double dt,double dt2,float rhopzero,float rhopoutmin,float rhopoutmax,tfloat3 gravity
-  ,typecode *code,double2 *movxy,double *movz,float4 *velrhopnew,cudaStream_t stm)
+  ,typecode *code,double2 *movxy,double *movz,float4 *velrhopnew,hipStream_t stm)
 {
   double dt205=(0.5*dt*dt);
   if(np){
@@ -309,7 +310,7 @@ template<bool floating,bool shift,bool inout> __global__ void KerComputeStepSymp
 void ComputeStepSymplecticPre(bool floating,bool shift,bool inout,unsigned np,unsigned npb
   ,const float4 *velrhoppre,const float *ar,const float3 *ace,const float4 *shiftposfs
   ,const float3 *indirvel,double dtm,float rhopzero,float rhopoutmin,float rhopoutmax,tfloat3 gravity
-  ,typecode *code,double2 *movxy,double *movz,float4 *velrhop,cudaStream_t stm)
+  ,typecode *code,double2 *movxy,double *movz,float4 *velrhop,hipStream_t stm)
 {
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,SPHBSIZE);
@@ -419,7 +420,7 @@ template<bool floating,bool shift,bool inout> __global__ void KerComputeStepSymp
 void ComputeStepSymplecticCor(bool floating,bool shift,bool inout,unsigned np,unsigned npb
   ,const float4 *velrhoppre,const float *ar,const float3 *ace,const float4 *shiftposfs
   ,const float3 *indirvel,double dtm,double dt,float rhopzero,float rhopoutmin,float rhopoutmax,tfloat3 gravity
-  ,typecode *code,double2 *movxy,double *movz,float4 *velrhop,cudaStream_t stm)
+  ,typecode *code,double2 *movxy,double *movz,float4 *velrhop,hipStream_t stm)
 {
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,SPHBSIZE);

@@ -28,8 +28,10 @@ else
     CCFLAGS+= -march=native
   endif
 endif
-CC=g++
+CC=hipcc
 CCLINKFLAGS=-fopenmp -lgomp
+#use to find paths: hipconfig --cxx_config
+CCFLAGS +=-D__HIP_PLATFORM_HCC__= -D__HIP_PLATFORM_AMD__= -I/usr/include -I/usr/lib64/llvm17/bin/../../../lib/clang/17
 
 ifeq ($(COMPILE_VTKLIB), NO)
   CCFLAGS:=$(CCFLAGS) -DDISABLE_VTKLIB
@@ -47,65 +49,8 @@ ifeq ($(COMPILE_MOORDYN), NO)
   CCFLAGS:=$(CCFLAGS) -DDISABLE_MOORDYN
 endif
 
-#=============== CUDA selection ===============
-CUDAVER=11
-
-#=============== CUDA toolkit directory (make appropriate for local CUDA installation) ===============
-ifeq ($(CUDAVER),00)
-  DIRTOOLKIT=/usr/local/cuda
-endif
-ifeq ($(CUDAVER),75)
-  DIRTOOLKIT=/exports/opt/NVIDIA/cuda-7.5
-endif
-ifeq ($(CUDAVER),91)
-  DIRTOOLKIT=/exports/opt/NVIDIA/cuda-9.1
-endif
-ifeq ($(CUDAVER),92)
-  DIRTOOLKIT=/exports/opt/NVIDIA/cuda-9.2
-endif
-ifeq ($(CUDAVER),11)
-  DIRTOOLKIT=/exports/opt/NVIDIA/cuda-11.7
-endif
-
-#=============== Select GPU architectures ===============
-ifeq ($(CUDAVER),00)
-  GENCODE:=$(GENCODE) -gencode=arch=compute_20,code=\"sm_20,compute_20\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_30,code=\"sm_30,compute_30\"
-endif
-ifeq ($(CUDAVER),75)
-  GENCODE:=$(GENCODE) -gencode=arch=compute_20,code=\"sm_20,compute_20\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_30,code=\"sm_30,compute_30\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_35,code=\"sm_35,compute_35\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_37,code=\"sm_37,compute_37\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_50,code=\"sm_50,compute_50\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_52,code=\"sm_52,compute_52\"
-endif
-ifeq ($(CUDAVER),91)
-  GENCODE:=$(GENCODE) -gencode=arch=compute_30,code=\"sm_30,compute_30\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_35,code=\"sm_35,compute_35\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_50,code=\"sm_50,compute_50\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_52,code=\"sm_52,compute_52\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_61,code=\"sm_61,compute_61\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_70,code=\"sm_70,compute_70\"
-endif
-ifeq ($(CUDAVER),92)
-  # module load cuda/9.2
-  GENCODE:=$(GENCODE) -gencode=arch=compute_30,code=\"sm_30,compute_30\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_35,code=\"sm_35,compute_35\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_50,code=\"sm_50,compute_50\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_52,code=\"sm_52,compute_52\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_61,code=\"sm_61,compute_61\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_70,code=\"sm_70,compute_70\"
-endif
-ifeq ($(CUDAVER),11)
-  # module load cuda/11.7
-  # GENCODE:=$(GENCODE) -gencode=arch=compute_30,code=\"sm_30,compute_30\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_35,code=\"sm_35,compute_35\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_50,code=\"sm_50,compute_50\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_52,code=\"sm_52,compute_52\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_61,code=\"sm_61,compute_61\"
-  GENCODE:=$(GENCODE) -gencode=arch=compute_70,code=\"sm_70,compute_70\"
-endif
+#=============== HIP ROCM toolkit directory (make appropriate for local ROCM installation) ===============
+DIRTOOLKIT=/usr
 
 #=============== Files to compile ===============
 OBJXML=JXml.o tinystr.o tinyxml.o tinyxmlerror.o tinyxmlparser.o
@@ -151,18 +96,16 @@ endif
 
 #=============== GPU Code Compilation ===============
 CCFLAGS := $(CCFLAGS) -I./ -I$(DIRTOOLKIT)/include
-CCLINKFLAGS := $(CCLINKFLAGS) -L$(DIRTOOLKIT)/lib64 -lcudart_static -ldl -lrt
-NCC=nvcc
+CCLINKFLAGS := $(CCLINKFLAGS) -L$(DIRTOOLKIT)/lib64 -ldl -lrt
+
+NCC=hipcc
 ifeq ($(USE_DEBUG), NO)
-  NCCFLAGS+=-c $(GENCODE) -O3 -ccbin $(CC)
+  NCCFLAGS+=-c $(GENCODE) -O3
 else
-  NCCFLAGS+=-c $(GENCODE) -O0 -ccbin $(CC) -g
+  NCCFLAGS+=-c $(GENCODE) -O0
 endif
 ifeq ($(USE_FAST_MATH), YES)
   NCCFLAGS+= -use_fast_math
-endif
-ifeq ($(CUDAVER),11)	
-  NCCFLAGS+= -Wno-deprecated-gpu-targets
 endif
 
 all:$(EXECS_DIRECTORY)/$(EXECNAME)

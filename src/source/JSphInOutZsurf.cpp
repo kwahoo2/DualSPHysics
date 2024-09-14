@@ -216,8 +216,8 @@ void JSphInOutZsurf::ResetTimes(){
   delete[] CurrentZsurf; CurrentZsurf=NULL;
 #ifdef _WITHGPU
   if(!Cpu){
-    cudaFree(TimesZsurfg);    TimesZsurfg=NULL;
-    cudaFree(CurrentZsurfg);  CurrentZsurfg=NULL;
+    hipFree(TimesZsurfg);    TimesZsurfg=NULL;
+    hipFree(CurrentZsurfg);  CurrentZsurfg=NULL;
   }
 #endif
 }
@@ -356,7 +356,7 @@ void JSphInOutZsurf::ConfigZsurfResults(){
       //-Nothing to do since CurrentZsurf (for CPU and GPU) and CurrentZsurfg (only for GPU) contains the zsurf results.
     }
     #ifdef _WITHGPU
-      if(!Cpu && CurrentZsurfg!=NULL)cudaMemcpy(CurrentZsurf,CurrentZsurfg,sizeof(float)*Nptx,cudaMemcpyDeviceToHost);
+      if(!Cpu && CurrentZsurfg!=NULL)hipMemcpy(CurrentZsurf,CurrentZsurfg,sizeof(float)*Nptx,hipMemcpyDeviceToHost);
     #endif
     ZsurfResults.zsurf=CurrentZsurf;
   }
@@ -373,7 +373,7 @@ void JSphInOutZsurf::ConfigZsurfResults(){
 //==============================================================================
 const StZsurfResult& JSphInOutZsurf::GetZsurfResults()const{
   #ifdef _WITHGPU
-    if(!Cpu && CurrentZsurfg!=NULL)cudaMemcpy(CurrentZsurf,CurrentZsurfg,sizeof(float)*Nptx,cudaMemcpyDeviceToHost);
+    if(!Cpu && CurrentZsurfg!=NULL)hipMemcpy(CurrentZsurf,CurrentZsurfg,sizeof(float)*Nptx,hipMemcpyDeviceToHost);
   #endif
   return(ZsurfResults);
 }

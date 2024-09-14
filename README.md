@@ -9,7 +9,9 @@
 
 <h4 align="center"><a href="http://www.dual.sphysics.org" target="_blank">DualSPHysics</a> is based on the Smoothed Particle Hydrodynamics model named <a href="http://www.sphysics.org" target="_blank">SPHysics</a>.</h4>
 
-<h4 align="center">The code is developed to study free-surface flow phenomena where Eulerian methods can be difficult to apply, such as waves or impact of dam-breaks on off-shore structures. DualSPHysics is a set of C++, <a href="https://developer.nvidia.com/cuda-zone" target="_blank">CUDA</a> and Java codes designed to deal with real-life engineering problems.</h4>
+<h4 align="center">The code is developed to study free-surface flow phenomena where Eulerian methods can be difficult to apply, such as waves or impact of dam-breaks on off-shore structures. DualSPHysics is a set of C++, <a href="https://developer.nvidia.com/cuda-zone" target="_blank">CUDA</a> (replaced with <a href="https://rocm.docs.amd.com/en/latest/" target="_blank">AMD ROCm</a> in this fork) and Java codes designed to deal with real-life engineering problems.</h4>
+
+# This is a fork adjusted for AMD ROCm
 
 # Instructions for regular users
 
@@ -39,11 +41,7 @@ We appreciate your efforts! But please, if you are trying to develop/implement a
 
 ## Microsoft Windows
 
-This application is being developed in Visual Studio Community 2022 since it is free and compatible with CUDA 11.7 (<a href="https://www.visualstudio.com/vs/older-downloads/" target="_blank">download web</a>). The repository contains project files.
-
-Make sure that you install the CUDA SDK beforehand if you want to compile the GPU version, and configure the Visual Studio project to point to the CUDA libraries directory to compile (now prepared for CUDA 11.7).
-
-You can also use the [Makefile](src/source/Makefile). It is possible that you'll need to edit it. Check the GNU/Linux guide on how to compile if you're using the makefile, as it is mostly the same, just installing the things manually by yourself.
+This fork is aimed for Linux/AMD ROCm.
 
 ## GNU/Linux
 
@@ -51,32 +49,20 @@ You can also use the [Makefile](src/source/Makefile). It is possible that you'll
 
 You can build the project in GNU/Linux using the [Makefile](src/source/Makefile) included in the source folder. Follow these steps (for the GPU version):
 
-1. Clone this repository into your system `git clone https://github.com/DualSPHysics/DualSPHysics.git`
+1. Clone this repository into your system `git clone https://github.com/kwahoo2/DualSPHysics.git`
 2. In a terminal, go to the folder `cd DualSPHysics/src/source/`
 3. Edit the `Makefile` file with a text editor and then:
-   * Set the `DIRTOOLKIT` variable with the path to CUDA in your system e.g. `DIRTOOLKIT=/opt/cuda`
-   * Make sure that your `G++` compiler version is compatible with the CUDA version installed in your system (e.g. CUDA 11.7 supports G++ versions up to 11.x). If you want to use an specific version, you should modify the variable `CC`, for example: `CC=/usr/local/bin/g++-11`
+   * Set the `DIRTOOLKIT` variable with the path to ROCm in your system e.g. `DIRTOOLKIT=/opt/rocm-6.1.2`
+   * Adjust the `CCFLAGS` variable with info got from the `hipconfig --cxx_config` command, e.g. `CCFLAGS +=-D__HIP_PLATFORM_HCC__= -D__HIP_PLATFORM_AMD__= -I/usr/include -I/usr/lib64/llvm17/bin/../../../lib/clang/17`
 4. Execute `make clean` to make sure the environment is clean and ready to compile.
 5. Execute `make`
 
+Note: Some Linux distributions have ROCm/HIP prepackaged. Eg. for Fedora:
+`sudo dnf install rocm-core-devel rocm-hip-devel rocprim-devel`
+
 After compiling you should see a message like `--- Compiled Release GPU/CPU version ---`. Go to `bin/linux/` to check that `DualSPHyiscs5.2_linux64` or `DualSPHyiscs5.2CPU_linux64` is there and build correctly.
 
-**For the CPU version**: If you want to compile de CPU version just ignore CUDA and use the makefile `Makefile_cpu`. To specify a different file to `make`, use the `-f` parameter: `make -f Makefile_cpu`
-
-### Using CMake
-
-Alternatively you can use [CMake](https://cmake.org) to compile DualSPHysics following these steps:
-
-1. Clone this repository into your system `git clone https://github.com/DualSPHysics/DualSPHysics.git`
-2. In a terminal, go to the folder `cd DualSPHysics/src/source/`
-3. Create a temporal directory were the build files will be placed `mkdir build`
-4. Make sure that your `GCC` compiler version is compatible with the CUDA version installed in your system (e.g. CUDA 11.7 supports G++ versions up to 11.x). If you want to use an specific version, you should modify the environment variable `CC` and `CXX`, for example: `export CC=/usr/local/bin/gcc-11; export CXX=/usr/local/bin/g++11`
-4. Go to the build folder and execute cmake `cd build; cmake ..`
-5. Execute `make`
-
-If CUDA is not installed in your system, only the CPU version will be compiled.
-
-If you want the binaries be placed into `bin/linux` directory, just type `make install`
+**For the CPU version**: If you want to compile de CPU version just ignore HIP and use the makefile `Makefile_cpu`. To specify a different file to `make`, use the `-f` parameter: `make -f Makefile_cpu`
 
 # Graphical user interface (GUI)
 

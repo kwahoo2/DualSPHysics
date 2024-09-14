@@ -33,9 +33,9 @@
 ////==============================================================================
 //void JObjectGpu::RunExceptioonCudaStatic(const std::string &srcfile,int srcline
 //  ,const std::string &method
-//  ,cudaError_t cuerr,std::string msg)
+//  ,hipError_t cuerr,std::string msg)
 //{
-//  msg=msg+fun::PrintStr(" (CUDA error %d (%s)).\n",cuerr,cudaGetErrorString(cuerr));
+//  msg=msg+fun::PrintStr(" (CUDA error %d (%s)).\n",cuerr,hipGetErrorString(cuerr));
 //  throw JException(srcfile,srcline,"JObjectGpu",method,msg,"");
 //}
 ////==============================================================================
@@ -44,8 +44,8 @@
 //void JObjectGpu::CheckCudaErroorStatic(const std::string &srcfile,int srcline
 //  ,const std::string &method,std::string msg)
 //{
-//  cudaError_t cuerr=cudaGetLastError();
-//  if(cuerr!=cudaSuccess)RunExceptioonCudaStatic(srcfile,srcline,method,cuerr,msg);
+//  hipError_t cuerr=hipGetLastError();
+//  if(cuerr!=hipSuccess)RunExceptioonCudaStatic(srcfile,srcline,method,cuerr,msg);
 //}
 
 //==============================================================================
@@ -53,9 +53,9 @@
 //==============================================================================
 void JObjectGpu::RunExceptioonCuda(const std::string &srcfile,int srcline
   ,const std::string &classname,const std::string &method
-  ,cudaError_t cuerr,std::string msg)const
+  ,hipError_t cuerr,std::string msg)const
 {
-  msg=msg+fun::PrintStr(" (CUDA error %d (%s)).\n",cuerr,cudaGetErrorString(cuerr));
+  msg=msg+fun::PrintStr(" (CUDA error %d (%s)).\n",cuerr,hipGetErrorString(cuerr));
   throw JException(srcfile,srcline,classname,method,msg,"");
 }
 
@@ -67,8 +67,8 @@ void JObjectGpu::CheckCudaErroor(const std::string &srcfile,int srcline
   ,const std::string &classname,const std::string &method
   ,std::string msg)const
 {
-  cudaError_t cuerr=cudaGetLastError();
-  if(cuerr!=cudaSuccess)RunExceptioonCuda(srcfile,srcline,classname,method,cuerr,msg);
+  hipError_t cuerr=hipGetLastError();
+  if(cuerr!=hipSuccess)RunExceptioonCuda(srcfile,srcline,classname,method,cuerr,msg);
 }
 
 

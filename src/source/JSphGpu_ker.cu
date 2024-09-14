@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 //HEAD_DSPH
 /*
  <DUALSPHYSICS>  Copyright (c) 2020 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
@@ -23,7 +24,7 @@
 #include "FunctionsCuda.h"
 #include "JLog2.h"
 #include <cfloat>
-#include <math_constants.h>
+#include "math_constants.h"
 //:#include "JDgKerPrint.h"
 //:#include "JDgKerPrint_ker.h"
 
@@ -106,8 +107,8 @@ float ReduMaxFloat(unsigned ndata,unsigned inidata,float* data,float* resu){
         dat=res; res=(dat==resu1? resu2: resu1); 
       }
     }
-    if(ndata>1)cudaMemcpy(&resf,res,sizeof(float),cudaMemcpyDeviceToHost);
-    else cudaMemcpy(&resf,data,sizeof(float),cudaMemcpyDeviceToHost);
+    if(ndata>1)hipMemcpy(&resf,res,sizeof(float),hipMemcpyDeviceToHost);
+    else hipMemcpy(&resf,data,sizeof(float),hipMemcpyDeviceToHost);
   }
   //else{//-Using Thrust library is slower than ReduMasFloat() with ndata < 5M.
   //  thrust::device_ptr<float> dev_ptr(data);
@@ -164,10 +165,10 @@ float ReduMaxFloat_w(unsigned ndata,unsigned inidata,float4* data,float* resu){
     }
   }
   float resf;
-  if(ndata>1)cudaMemcpy(&resf,res,sizeof(float),cudaMemcpyDeviceToHost);
+  if(ndata>1)hipMemcpy(&resf,res,sizeof(float),hipMemcpyDeviceToHost);
   else{
     float4 resf4;
-    cudaMemcpy(&resf4,data,sizeof(float4),cudaMemcpyDeviceToHost);
+    hipMemcpy(&resf4,data,sizeof(float4),hipMemcpyDeviceToHost);
     resf=resf4.w;
   }
   return(resf);
@@ -178,7 +179,7 @@ float ReduMaxFloat_w(unsigned ndata,unsigned inidata,float4* data,float* resu){
 /// Graba constantes para la interaccion a la GPU.
 //==============================================================================
 void CteInteractionUp(const StCteInteraction *cte){
-  cudaMemcpyToSymbol(CTE,cte,sizeof(StCteInteraction));
+  hipMemcpyToSymbol(HIP_SYMBOL(CTE),cte,sizeof(StCteInteraction));
 }
 
 //------------------------------------------------------------------------------
@@ -756,9 +757,9 @@ template<TpKernel tker,TpFtMode ftmode,bool lamsps,TpDensity tdensity,bool shift
     typedef void (*fun_ptr)(unsigned,unsigned,float,float,int,int4,int3,const int2*,unsigned,const unsigned*,const float*,const float2*,float2*,const float3*,const float4*,const float4*,const typecode*,const unsigned*,float*,float*,float3*,float*,TpShifting,float4*);
     fun_ptr ptr=&KerInteractionForcesFluid<tker,ftmode,lamsps,tdensity,shift,symm>;
     int qblocksize=0,mingridsize=0;
-    cudaOccupancyMaxPotentialBlockSize(&mingridsize,&qblocksize,(void*)ptr,0,0);
-    struct cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr,(void*)ptr);
+    hipOccupancyMaxPotentialBlockSize(&mingridsize,&qblocksize,(void*)ptr,0,0);
+    struct hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr,(void*)ptr);
     kerinfo->forcesfluid_bs=qblocksize;
     kerinfo->forcesfluid_rg=attr.numRegs;
     kerinfo->forcesfluid_bsmax=attr.maxThreadsPerBlock;
@@ -768,9 +769,9 @@ template<TpKernel tker,TpFtMode ftmode,bool lamsps,TpDensity tdensity,bool shift
     typedef void (*fun_ptr)(unsigned,unsigned,int,int4,int3,const int2*,const unsigned*,const float*,const float4*,const float4*,const typecode*,const unsigned*,float*,float*);
     fun_ptr ptr=&KerInteractionForcesBound<tker,ftmode,symm>;
     int qblocksize=0,mingridsize=0;
-    cudaOccupancyMaxPotentialBlockSize(&mingridsize,&qblocksize,(void*)ptr,0,0);
-    struct cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr,(void*)ptr);
+    hipOccupancyMaxPotentialBlockSize(&mingridsize,&qblocksize,(void*)ptr,0,0);
+    struct hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr,(void*)ptr);
     kerinfo->forcesbound_bs=qblocksize;
     kerinfo->forcesbound_rg=attr.numRegs;
     kerinfo->forcesbound_bsmax=attr.maxThreadsPerBlock;
@@ -1466,9 +1467,9 @@ void Interaction_ForcesDemT_KerInfo(StKerInfo *kerinfo)
     typedef void (*fun_ptr)(unsigned,int,int4,int3,const int2*,unsigned,const unsigned*,const unsigned*,const float4*,const float*,float,const float4*,const float4*,const typecode*,const unsigned*,float*,float3*);
     fun_ptr ptr=&KerInteractionForcesDem;
     int qblocksize=0,mingridsize=0;
-    cudaOccupancyMaxPotentialBlockSize(&mingridsize,&qblocksize,(void*)ptr,0,0);
-    struct cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr,(void*)ptr);
+    hipOccupancyMaxPotentialBlockSize(&mingridsize,&qblocksize,(void*)ptr,0,0);
+    struct hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr,(void*)ptr);
     kerinfo->forcesdem_bs=qblocksize;
     kerinfo->forcesdem_rg=attr.numRegs;
     kerinfo->forcesdem_bsmax=attr.maxThreadsPerBlock;
@@ -1548,7 +1549,7 @@ __global__ void KerComputeSpsTau(unsigned n,unsigned pini,float smag,float blin
 /// Computes sub-particle stress tensor (Tau) for SPS turbulence model.
 //==============================================================================
 void ComputeSpsTau(unsigned np,unsigned npb,float smag,float blin
-  ,const float4 *velrhop,const tsymatrix3f *gradvelg,tsymatrix3f *tau,cudaStream_t stm)
+  ,const float4 *velrhop,const tsymatrix3f *gradvelg,tsymatrix3f *tau,hipStream_t stm)
 {
   const unsigned npf=np-npb;
   if(npf){
@@ -1579,7 +1580,7 @@ __global__ void KerAddDelta(unsigned n,const float *delta,float *ar)
 /// Adds value of delta[] to ar[] provided it is not FLT_MAX.
 /// Anhade valor de delta[] a ar[] siempre que no sea FLT_MAX.
 //==============================================================================
-void AddDelta(unsigned n,const float *delta,float *ar,cudaStream_t stm){
+void AddDelta(unsigned n,const float *delta,float *ar,hipStream_t stm){
   if(n){
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
     KerAddDelta <<<sgrid,SPHBSIZE,0,stm>>> (n,delta,ar);
@@ -1733,7 +1734,7 @@ __global__ void KerCalcRidp(unsigned n,unsigned ini,unsigned idini,unsigned idfi
 void CalcRidp(bool periactive,unsigned np,unsigned pini,unsigned idini,unsigned idfin,const typecode *code,const unsigned *idp,unsigned *ridp){
   //-Assigns values UINT_MAX
   const unsigned nsel=idfin-idini;
-  cudaMemset(ridp,255,sizeof(unsigned)*nsel); 
+  hipMemset(ridp,255,sizeof(unsigned)*nsel); 
   //-Computes position according to id. | Calcula posicion segun id.
   if(np){
     dim3 sgrid=GetSimpleGridSize(np,SPHBSIZE);
@@ -2528,11 +2529,11 @@ unsigned PeriodicMakeList(unsigned n,unsigned pini,bool stable,unsigned nmax
   if(n){
     //-lspg size list initialized to zero.
     //-Inicializa tamanho de lista lspg a cero.
-    cudaMemset(listp+nmax,0,sizeof(unsigned));
+    hipMemset(listp+nmax,0,sizeof(unsigned));
     dim3 sgrid=GetSimpleGridSize(n,SPHBSIZE);
     const unsigned smem=(SPHBSIZE*2+1)*sizeof(unsigned); //-Each particle can leave two new periodic over the counter position. | De cada particula pueden salir 2 nuevas periodicas mas la posicion del contador.
     KerPeriodicMakeList <<<sgrid,SPHBSIZE,smem>>> (n,pini,nmax,Double3(mapposmin),Double3(mapposmax),Double3(perinc),posxy,posz,code,listp);
-    cudaMemcpy(&count,listp+nmax,sizeof(unsigned),cudaMemcpyDeviceToHost);
+    hipMemcpy(&count,listp+nmax,sizeof(unsigned),hipMemcpyDeviceToHost);
     //-Reorders list if it is valid and stable has been activated.
     //-Reordena lista si es valida y stable esta activado.
     if(stable && count && count<=nmax){

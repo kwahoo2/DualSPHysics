@@ -60,7 +60,7 @@ void JArraysGpuSize::Reset(){
 /// Frees allocated memory.
 //==============================================================================
 void JArraysGpuSize::FreeMemory(){
-  for(unsigned c=0;c<Count;c++)if(Pointers[c]){ cudaFree(Pointers[c]); Pointers[c]=NULL; }
+  for(unsigned c=0;c<Count;c++)if(Pointers[c]){ hipFree(Pointers[c]); Pointers[c]=NULL; }
   CountUsed=Count=0;
 }
 
@@ -77,11 +77,11 @@ void JArraysGpuSize::SetArrayCount(unsigned count){
   if(count<CountUsed)Run_Exceptioon("Unable to free arrays in use.");
   if(ArraySize){
     if(Count<count){//-Genera nuevos arrays. //-Generates new arrays
-      for(unsigned c=Count;c<count;c++)cudaMalloc((void**)(Pointers+c),ElementSize*ArraySize);
+      for(unsigned c=Count;c<count;c++)hipMalloc((void**)(Pointers+c),ElementSize*ArraySize);
       Check_CudaErroor("Failed GPU memory allocation.");
     }
     if(Count>count){//-Libera arrays. //-Frees arrays
-      for(unsigned c=count;c<Count;c++){ cudaFree(Pointers[c]); Pointers[c]=NULL; }
+      for(unsigned c=count;c<Count;c++){ hipFree(Pointers[c]); Pointers[c]=NULL; }
     }
   }
   Count=count;

@@ -20,7 +20,7 @@
 
 #include "JMLPistonsGpu.h"
 #ifdef _WITHGPU
-  #include <cuda_runtime_api.h>
+  #include <hip/hip_runtime_api.h>
 #endif
 
 using namespace std;
@@ -52,8 +52,8 @@ void JMLPistonsGpu::FreeMemoryGpu(){
   MemGpuFixed=0;
   #ifdef _WITHGPU
     //-GPU memory for List1d.
-    if(PistonIdg)cudaFree(PistonIdg);  PistonIdg=NULL;
-    if(MovVelg)  cudaFree(MovVelg);    MovVelg=NULL;
+    if(PistonIdg)hipFree(PistonIdg);  PistonIdg=NULL;
+    if(MovVelg)  hipFree(MovVelg);    MovVelg=NULL;
   #endif 
 }
 
@@ -62,9 +62,9 @@ void JMLPistonsGpu::FreeMemoryGpu(){
 //==============================================================================
 void JMLPistonsGpu::PreparePiston1d(unsigned sizepistonid,const byte *pistonid,unsigned sizemovvel){
   #ifdef _WITHGPU
-    cudaMalloc((void**)&PistonIdg,sizeof(byte)*sizepistonid);
-    cudaMemcpy(PistonIdg,pistonid,sizeof(byte)*sizepistonid,cudaMemcpyHostToDevice);
-    cudaMalloc((void**)&MovVelg,sizeof(double)*sizemovvel);
+    hipMalloc((void**)&PistonIdg,sizeof(byte)*sizepistonid);
+    hipMemcpy(PistonIdg,pistonid,sizeof(byte)*sizepistonid,hipMemcpyHostToDevice);
+    hipMalloc((void**)&MovVelg,sizeof(double)*sizemovvel);
     MemGpuFixed=sizeof(byte)*sizepistonid;
     MemGpuFixed+=sizeof(double)*sizemovvel;
   #endif 
@@ -75,7 +75,7 @@ void JMLPistonsGpu::PreparePiston1d(unsigned sizepistonid,const byte *pistonid,u
 //==============================================================================
 void JMLPistonsGpu::CopyMovVel(unsigned sizemovvel,const double *movvel){
   #ifdef _WITHGPU
-    cudaMemcpy(MovVelg,movvel,sizeof(double)*sizemovvel,cudaMemcpyHostToDevice);
+    hipMemcpy(MovVelg,movvel,sizeof(double)*sizemovvel,hipMemcpyHostToDevice);
   #endif 
 }
 
@@ -105,7 +105,7 @@ JMLPiston2DGpu::~JMLPiston2DGpu(){
 void JMLPiston2DGpu::FreeMemoryGpu(){
   Size=0;
   #ifdef _WITHGPU
-    if(MovVelyzg)cudaFree(MovVelyzg);  MovVelyzg=NULL;
+    if(MovVelyzg)hipFree(MovVelyzg);  MovVelyzg=NULL;
   #endif 
 }
 
@@ -116,7 +116,7 @@ void JMLPiston2DGpu::AllocMemoryGpu(unsigned size){
   #ifdef _WITHGPU
     FreeMemoryGpu();
     Size=size;
-    cudaMalloc((void**)&MovVelyzg,sizeof(double)*Size);
+    hipMalloc((void**)&MovVelyzg,sizeof(double)*Size);
   #endif 
 }
 
@@ -125,7 +125,7 @@ void JMLPiston2DGpu::AllocMemoryGpu(unsigned size){
 //==============================================================================
 void JMLPiston2DGpu::CopyMovVelyz(const double *movvelyz){
   #ifdef _WITHGPU
-    cudaMemcpy(MovVelyzg,movvelyz,sizeof(double)*Size,cudaMemcpyHostToDevice);
+    hipMemcpy(MovVelyzg,movvelyz,sizeof(double)*Size,hipMemcpyHostToDevice);
   #endif 
 }
 

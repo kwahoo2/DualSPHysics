@@ -29,7 +29,7 @@
 #define _JSphShifting_ker_
 
 #include "TypesDef.h"
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 /// Implements a set of functions and CUDA kernels for Shifting correction on GPU.
 namespace cushift{
@@ -37,16 +37,16 @@ namespace cushift{
 //-Kernels for JSphShifting.
 void InitGpuPosMax(bool tfirst,bool tdbl,unsigned n,unsigned pini
   ,const tdouble3& pmin1,const tdouble3& pmax1,const tdouble3& pmin2,const tdouble3& pmax2
-  ,const double2* posxy,const double* posz,float4* shiftposfs,cudaStream_t stm);
+  ,const double2* posxy,const double* posz,float4* shiftposfs,hipStream_t stm);
 
 void InitGpuPlanes(bool tfirst,bool tdbl,unsigned n,unsigned pini
   ,const tplane3d& plax1,const tplane3d& play1,const tplane3d& plaz1,const tdouble3& pladis1
   ,const tplane3d& plax2,const tplane3d& play2,const tplane3d& plaz2,const tdouble3& pladis2
-  ,const double2* posxy,const double* posz,float4* shiftposfs,cudaStream_t stm);
+  ,const double2* posxy,const double* posz,float4* shiftposfs,hipStream_t stm);
 
 void RunShifting(unsigned n,unsigned pini,double dt
   ,double coefumagn,float shifttfs,double coeftfs,float maxdist
-  ,const float4 *velrhop,float4 *shiftposfs,cudaStream_t stm);
+  ,const float4 *velrhop,float4 *shiftposfs,hipStream_t stm);
 
 }
 

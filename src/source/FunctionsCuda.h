@@ -37,7 +37,7 @@
 
 #include <string>
 #include <vector>
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 #include "TypesDef.h"
 #include "RunExceptionGpuDef.h"
 
@@ -121,7 +121,7 @@ size_t Malloc(float4   **,unsigned count);
 size_t Malloc(double   **,unsigned count);
 size_t Malloc(double2  **,unsigned count);
 size_t Malloc(double3  **,unsigned count);
-//:cudaFree(GpuMem);
+//:hipFree(GpuMem);
 
 //-Functions to allocate pinned CPU memory.
 size_t HostAlloc(byte     **,unsigned count);
@@ -133,7 +133,7 @@ size_t HostAlloc(float    **,unsigned count);
 size_t HostAlloc(tfloat4  **,unsigned count);
 size_t HostAlloc(double   **,unsigned count);
 size_t HostAlloc(tdouble2 **,unsigned count);
-//:cudaFreeHost(PinnedMem);
+//:hipHostFree(PinnedMem);
 
 //-Functions to copy data to Host (debug).
 byte*     ToHostByte   (unsigned pini,unsigned n,const byte     *ptrg);
@@ -157,36 +157,36 @@ tfloat3*  ToHostPosf3(unsigned nplist,const unsigned *idxlistg,const double2 *po
 }
 
 //:-INITIALISATION:
-//: cudaSetDevice(gpuid);
-//: cudaDeviceReset();
+//: hipSetDevice(gpuid);
+//: hipDeviceReset();
 
 //:-SYNCHRONIZATION:
-//: cudaDeviceSynchronize();           //-Blocks host until all issued CUDA calls are complete.
-//: cudaStreamSynchronize(stream);     //-Blocks host until all issued CUDA calls in stream are complete.
-//: cudaEventSynchronize(event);       //-Blocks host until event has occurred. 
-//: cudaStreamWaitEvent(stream,event,0); //-Blocks stream until event occurs. Only blocks launches after this call. Does not block the host!
+//: hipDeviceSynchronize();           //-Blocks host until all issued CUDA calls are complete.
+//: hipStreamSynchronize(stream);     //-Blocks host until all issued CUDA calls in stream are complete.
+//: hipEventSynchronize(event);       //-Blocks host until event has occurred. 
+//: hipStreamWaitEvent(stream,event,0); //-Blocks stream until event occurs. Only blocks launches after this call. Does not block the host!
 
 //:-MANAGING EVENTS:
-//: cudaEvent_t event=NULL;
-//: cudaEventCreate(&event);    //-Creates an event.
-//: cudaEventDestroy(event);   //-Destroys an event.
-//: cudaEventCreateWithFlags(&event,cudaEventDisableTiming);  //-Disables timing to increase performance and avoid synchronization issues.
-//: cudaEventRecord(event,stream); //-Set the event state to not occurred. Enqueue the event into a stream. Event state is set to occurred when it reaches the front of the stream.
-//: float t=0; cudaEventElapsedTime(&t,evt,evt2); //-Devuelve tiempo entre eventos. Entre el cudaEventRecord() y cudaEventElapsedTime() tiene que haber alguna llamada de sincronizacion (cudaDeviceSynchronize(), cudaStreamSynchronize() o cudaEventSynchronize()).
+//: hipEvent_t event=NULL;
+//: hipEventCreate(&event);    //-Creates an event.
+//: hipEventDestroy(event);   //-Destroys an event.
+//: hipEventCreateWithFlags(&event,hipEventDisableTiming);  //-Disables timing to increase performance and avoid synchronization issues.
+//: hipEventRecord(event,stream); //-Set the event state to not occurred. Enqueue the event into a stream. Event state is set to occurred when it reaches the front of the stream.
+//: float t=0; hipEventElapsedTime(&t,evt,evt2); //-Devuelve tiempo entre eventos. Entre el hipEventRecord() y hipEventElapsedTime() tiene que haber alguna llamada de sincronizacion (hipDeviceSynchronize(), hipStreamSynchronize() o hipEventSynchronize()).
 
 //:-MANAGING STREAMS:
-//: cudaStream_t stm=NULL;
-//: cudaStreamCreate(&stm);
-//: if(stm)cudaStreamDestroy(stm);  stm=NULL;
+//: hipStream_t stm=NULL;
+//: hipStreamCreate(&stm);
+//: if(stm)hipStreamDestroy(stm);  stm=NULL;
 
 //:-OVERLAPPING KERNELS AND MEMORY OPERATIONS:
 //: - El tiempo total se reduce porque hay cierto solapamiento, pero el tiempo de cada operacion aumenta.
 
 //:-OTHER FUNCTIONS:
-//: cudaMemset(datad,0,sizeof(unsigned)*n);
-//: cudaMemsetAsync(datad,0,sizeof(unsigned)*n,stm);
-//: cudaMemcpy(datah,datad,sizeof(unsigned)*n,cudaMemcpyDeviceToHost);
-//: cudaMemcpyAsync(datah,datad,sizeof(unsigned)*n,cudaMemcpyDeviceToHost,stm);
+//: hipMemset(datad,0,sizeof(unsigned)*n);
+//: hipMemsetAsync(datad,0,sizeof(unsigned)*n,stm);
+//: hipMemcpy(datah,datad,sizeof(unsigned)*n,hipMemcpyDeviceToHost);
+//: hipMemcpyAsync(datah,datad,sizeof(unsigned)*n,hipMemcpyDeviceToHost,stm);
 #endif
 
 
